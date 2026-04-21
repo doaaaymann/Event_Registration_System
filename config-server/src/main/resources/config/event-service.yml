@@ -16,3 +16,12 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  security:
+    user:
+      name: disabled
+      password: disabled
+
+application:
+  security:
+    jwt:
+      secret: ${AUTH_JWT_SECRET:TXlTdXBlclNlY3JldEtleUZvckp3dEF1dGhTZXJ2aWNlMTIzNDU2Nzg5MDEyMzQ1Njc4OTA=}
