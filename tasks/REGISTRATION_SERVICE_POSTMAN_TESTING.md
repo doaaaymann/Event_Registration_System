@@ -16,7 +16,7 @@ It explains:
 Open a terminal in the project root and move into the repository:
 
 ```powershell
-cd C:\Users\IShop\Event_Registration_System
+cd C:\Users\doaaa\Documents\GitHub\Event_Registration_System-
 ```
 
 To confirm you are in the correct place:
@@ -76,7 +76,7 @@ According to the task plan, Person 3 is responsible for:
 If you only want the services needed for registration testing, run:
 
 ```powershell
-docker compose up --build postgres config-server eureka-server auth-service event-service notification-service registration-service
+docker compose up --build postgres config-server eureka-server auth-service event-service registration-service
 ```
 
 This starts:
@@ -86,8 +86,10 @@ This starts:
 - Eureka Server
 - Auth Service
 - Event Service
-- Notification Service
 - Registration Service
+
+`notification-service` is optional for Person 3 phase testing.
+Registration creation/cancellation should still succeed if notification is not running.
 
 To stop the containers:
 
@@ -134,7 +136,7 @@ Before changing code:
 Recommended local workflow:
 
 ```powershell
-cd C:\Users\IShop\Event_Registration_System
+cd C:\Users\doaaa\Documents\GitHub\Event_Registration_System-
 ```
 
 ```powershell
@@ -144,7 +146,7 @@ mvn -pl registration-service test
 If tests pass, run the registration stack:
 
 ```powershell
-docker compose up --build postgres config-server eureka-server auth-service event-service notification-service registration-service
+docker compose up --build postgres config-server eureka-server auth-service event-service registration-service
 ```
 
 Then verify the endpoints in Postman.
@@ -189,12 +191,10 @@ From `event-service`:
 - `GET /api/events/{eventId}`
 - `GET /api/events/{eventId}/availability`
 
-From `notification-service`:
+From `notification-service` (Phase 5 integration, optional for Person 3 completion):
 
 - `POST /api/notifications/internal/registration-created`
 - `POST /api/notifications/internal/registration-cancelled`
-
-Before final integration testing, confirm these endpoints exist and accept the expected payloads.
 
 ## 9. Postman Setup
 
@@ -203,6 +203,8 @@ Create a Postman environment and add these variables:
 - `registrationBaseUrl = http://localhost:8083`
 - `authBaseUrl = http://localhost:8081`
 - `participantToken =`
+- `organizerToken =`
+- `adminToken =`
 - `eventId =`
 - `registrationId =`
 
@@ -423,7 +425,31 @@ Example response:
 }
 ```
 
-### Request 9: Cancel Registration
+### Request 9: Participant Tracking Access Control
+
+- Method: `GET`
+- URL: `{{registrationBaseUrl}}/api/registrations/events/{{eventId}}`
+
+Headers (participant):
+
+- `Authorization: Bearer {{participantToken}}`
+
+Expected:
+
+- `403 Forbidden`
+
+Headers (organizer owner or admin):
+
+- `Authorization: Bearer {{organizerToken}}`
+  or
+- `Authorization: Bearer {{adminToken}}`
+
+Expected:
+
+- `200 OK`
+- list of registrations for the event
+
+### Request 10: Cancel Registration
 
 - Method: `DELETE`
 - URL: `{{registrationBaseUrl}}/api/registrations/{{registrationId}}`
@@ -449,7 +475,7 @@ Example response:
 }
 ```
 
-### Request 10: Confirm Count After Cancellation
+### Request 11: Confirm Count After Cancellation
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/events/{{eventId}}/count`
@@ -463,7 +489,7 @@ Expected:
 - `200 OK`
 - `registeredCount` decreases after cancellation
 
-### Request 11: Reject Missing Token
+### Request 12: Reject Missing Token
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/me`
@@ -474,7 +500,7 @@ Expected:
 
 - `401 Unauthorized`
 
-### Request 12: Reject Invalid Token
+### Request 13: Reject Invalid Token
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/me`
@@ -490,17 +516,19 @@ Expected:
 ## 12. Recommended Postman Order
 
 1. Login participant
-2. Confirm event exists
-3. Confirm event availability
-4. Create registration
-5. Reject duplicate registration
-6. Get my registrations
-7. Get registration by id
-8. Get event count
-9. Cancel registration
-10. Confirm count after cancellation
-11. Test missing token
-12. Test invalid token
+2. Login organizer/admin
+3. Confirm event exists
+4. Confirm event availability
+5. Create registration
+6. Reject duplicate registration
+7. Get my registrations
+8. Get registration by id
+9. Get event count
+10. Verify participant tracking access control
+11. Cancel registration
+12. Confirm count after cancellation
+13. Test missing token
+14. Test invalid token
 
 ## 13. Contract Confirmation Checklist
 
@@ -508,7 +536,7 @@ Before you say your part is integrated, confirm:
 
 - `event-service` returns `id`, `title`, and `status` from `GET /api/events/{eventId}`
 - `event-service` returns `eventId`, `status`, `availableSeats`, and `registrationOpen` from `GET /api/events/{eventId}/availability`
-- `notification-service` accepts:
+- `notification-service` accepts (Phase 5 integration check only):
 
 ```json
 {
@@ -519,7 +547,7 @@ Before you say your part is integrated, confirm:
 }
 ```
 
-- `notification-service` also accepts:
+- `notification-service` also accepts (Phase 5 integration check only):
 
 ```json
 {
@@ -547,7 +575,8 @@ Then check:
 - does the event really exist
 - is the event `SCHEDULED`
 - does the availability endpoint return seats
-- are `event-service` and `notification-service` running
+- is `event-service` running
+- `notification-service` is optional for Person 3 testing
 - did you use the latest token after login
 
 ## 15. How Person 3 Knows The Registration Part Is Done
@@ -562,10 +591,11 @@ Person 3 can mark the registration task done when all of these are true:
 - `/api/registrations/{registrationId}` works for the owner
 - cancellation works
 - `/api/registrations/events/{eventId}/count` works
+- `/api/registrations/events/{eventId}` returns `403` for participant and `200` for organizer/admin owner
 - missing token is rejected
 - invalid token is rejected
 - event-service contract is confirmed
-- notification-service contract is confirmed
+- notification-service contract check is deferred to Phase 5 integration
 
 ## 16. Fast Final Checklist
 
@@ -578,7 +608,7 @@ mvn -pl registration-service test
 Run registration stack:
 
 ```powershell
-docker compose up --build postgres config-server eureka-server auth-service event-service notification-service registration-service
+docker compose up --build postgres config-server eureka-server auth-service event-service registration-service
 ```
 
 Then complete the Postman flow above.

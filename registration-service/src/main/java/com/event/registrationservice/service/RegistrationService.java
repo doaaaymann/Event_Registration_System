@@ -6,7 +6,6 @@ import com.event.registrationservice.dto.client.EventAvailabilityResponse;
 import com.event.registrationservice.dto.client.EventDetailsResponse;
 import com.event.registrationservice.dto.client.NotificationCommand;
 import com.event.registrationservice.dto.request.CreateRegistrationRequest;
-import com.event.registrationservice.dto.response.RegistrationCountResponse;
 import com.event.registrationservice.dto.response.RegistrationResponse;
 import com.event.registrationservice.entity.Registration;
 import com.event.registrationservice.entity.RegistrationStatus;
@@ -18,6 +17,8 @@ import com.event.registrationservice.exception.ResourceNotFoundException;
 import com.event.registrationservice.repository.RegistrationRepository;
 import com.event.registrationservice.security.AuthenticatedUser;
 import feign.FeignException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ import java.util.List;
 @Service
 public class RegistrationService {
 
+    private static final Logger log = LoggerFactory.getLogger(RegistrationService.class);
     private static final String PARTICIPANT_ROLE = "PARTICIPANT";
 
     private final RegistrationRepository registrationRepository;
@@ -95,8 +97,10 @@ public class RegistrationService {
     }
 
     @Transactional(readOnly = true)
-    public List<RegistrationResponse> getEventRegistrations(Long eventId) {
-        fetchEvent(eventId);
+    public List<RegistrationResponse> getEventRegistrations(Long eventId, AuthenticatedUser authenticatedUser) {
+        requireAuthenticatedUser(authenticatedUser);
+        EventDetailsResponse event = fetchEvent(eventId);
+        enforceParticipantTrackingAccess(authenticatedUser, event);
         return registrationRepository.findAllByEventIdOrderByRegisteredAtAsc(eventId)
                 .stream()
                 .map(this::toResponse)
@@ -123,13 +127,6 @@ public class RegistrationService {
         return toResponse(savedRegistration);
     }
 
-    @Transactional(readOnly = true)
-    public RegistrationCountResponse getRegistrationCount(Long eventId) {
-        fetchEvent(eventId);
-        long registeredCount = registrationRepository.countByEventIdAndStatus(eventId, RegistrationStatus.REGISTERED);
-        return new RegistrationCountResponse(eventId, registeredCount);
-    }
-
     private void requireAuthenticatedUser(AuthenticatedUser authenticatedUser) {
         if (authenticatedUser == null || authenticatedUser.getUserId() == null) {
             throw new ForbiddenOperationException("Authenticated user context is required");
@@ -146,6 +143,17 @@ public class RegistrationService {
         if (!registration.getParticipantId().equals(authenticatedUser.getUserId())) {
             throw new ForbiddenOperationException("Only the registration owner can perform this action");
         }
+    }
+
+    private void enforceParticipantTrackingAccess(AuthenticatedUser authenticatedUser, EventDetailsResponse event) {
+        if (authenticatedUser.hasRole("ADMIN")) {
+            return;
+        }
+        if (authenticatedUser.hasRole("ORGANIZER") && event.getOrganizerId() != null
+                && event.getOrganizerId().equals(authenticatedUser.getUserId())) {
+            return;
+        }
+        throw new ForbiddenOperationException("Only the event organizer or ADMIN can view event participants");
     }
 
     private void validateEventStatus(EventDetailsResponse event) {
@@ -196,7 +204,8 @@ public class RegistrationService {
         try {
             notificationServiceClient.sendRegistrationCreated(command);
         } catch (FeignException ex) {
-            throw new DownstreamServiceException("Notification service is unavailable");
+            log.warn("Failed to send registration-created notification for registration {}: {}",
+                    registration.getId(), ex.getMessage());
         }
     }
 
@@ -210,7 +219,8 @@ public class RegistrationService {
         try {
             notificationServiceClient.sendRegistrationCancelled(command);
         } catch (FeignException ex) {
-            throw new DownstreamServiceException("Notification service is unavailable");
+            log.warn("Failed to send registration-cancelled notification for registration {}: {}",
+                    registration.getId(), ex.getMessage());
         }
     }
 

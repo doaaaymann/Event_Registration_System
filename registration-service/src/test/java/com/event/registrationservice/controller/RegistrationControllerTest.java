@@ -1,7 +1,6 @@
 package com.event.registrationservice.controller;
 
 import com.event.registrationservice.dto.request.CreateRegistrationRequest;
-import com.event.registrationservice.dto.response.RegistrationCountResponse;
 import com.event.registrationservice.dto.response.RegistrationResponse;
 import com.event.registrationservice.exception.GlobalExceptionHandler;
 import com.event.registrationservice.exception.ResourceNotFoundException;
@@ -94,18 +93,6 @@ class RegistrationControllerTest {
                         .with(authentication(TestAuthenticationFactory.authentication())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
-    }
-
-    @Test
-    void getEventCountReturnsPayload() throws Exception {
-        when(registrationService.getRegistrationCount(10L))
-                .thenReturn(new RegistrationCountResponse(10L, 5));
-
-        mockMvc.perform(get("/api/registrations/events/10/count")
-                        .with(authentication(TestAuthenticationFactory.authentication())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.eventId").value(10L))
-                .andExpect(jsonPath("$.registeredCount").value(5));
     }
 
     @Test

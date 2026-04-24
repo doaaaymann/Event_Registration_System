@@ -163,7 +163,3 @@ A database is required to persist system data such as:
 - events
 - registrations
 - notifications
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/Registration

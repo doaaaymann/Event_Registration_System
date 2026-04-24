@@ -5,7 +5,6 @@ import com.event.registrationservice.client.NotificationServiceClient;
 import com.event.registrationservice.dto.client.EventAvailabilityResponse;
 import com.event.registrationservice.dto.client.EventDetailsResponse;
 import com.event.registrationservice.dto.request.CreateRegistrationRequest;
-import com.event.registrationservice.dto.response.RegistrationCountResponse;
 import com.event.registrationservice.dto.response.RegistrationResponse;
 import com.event.registrationservice.entity.Registration;
 import com.event.registrationservice.entity.RegistrationStatus;
@@ -158,14 +157,27 @@ class RegistrationServiceTest {
     }
 
     @Test
-    void getRegistrationCountReturnsOnlyRegisteredRows() {
-        when(eventServiceClient.getEvent(10L)).thenReturn(scheduledEvent());
-        when(registrationRepository.countByEventIdAndStatus(10L, RegistrationStatus.REGISTERED)).thenReturn(9L);
+    void getEventRegistrationsAllowsOrganizerOwner() {
+        EventDetailsResponse event = scheduledEvent();
+        event.setOrganizerId(5L);
+        when(eventServiceClient.getEvent(10L)).thenReturn(event);
+        when(registrationRepository.findAllByEventIdOrderByRegisteredAtAsc(10L)).thenReturn(List.of(existingRegistration()));
 
-        RegistrationCountResponse response = registrationService.getRegistrationCount(10L);
+        AuthenticatedUser organizer = new AuthenticatedUser(5L, "organizer@example.com", List.of("ORGANIZER"));
+        List<RegistrationResponse> result = registrationService.getEventRegistrations(10L, organizer);
 
-        assertThat(response.getEventId()).isEqualTo(10L);
-        assertThat(response.getRegisteredCount()).isEqualTo(9L);
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getEventRegistrationsRejectsParticipant() {
+        EventDetailsResponse event = scheduledEvent();
+        event.setOrganizerId(5L);
+        when(eventServiceClient.getEvent(10L)).thenReturn(event);
+
+        assertThatThrownBy(() -> registrationService.getEventRegistrations(10L, participant))
+                .isInstanceOf(ForbiddenOperationException.class)
+                .hasMessage("Only the event organizer or ADMIN can view event participants");
     }
 
     private Registration existingRegistration() {

@@ -1,7 +1,6 @@
 package com.event.registrationservice.controller;
 
 import com.event.registrationservice.dto.request.CreateRegistrationRequest;
-import com.event.registrationservice.dto.response.RegistrationCountResponse;
 import com.event.registrationservice.dto.response.RegistrationResponse;
 import com.event.registrationservice.security.AuthenticatedUser;
 import com.event.registrationservice.service.RegistrationService;
@@ -48,8 +47,9 @@ public class RegistrationController {
     }
 
     @GetMapping("/events/{eventId}")
-    public List<RegistrationResponse> getEventRegistrations(@PathVariable Long eventId) {
-        return registrationService.getEventRegistrations(eventId);
+    public List<RegistrationResponse> getEventRegistrations(@PathVariable Long eventId,
+                                                            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
+        return registrationService.getEventRegistrations(eventId, authenticatedUser);
     }
 
     @DeleteMapping("/{registrationId}")
@@ -58,8 +58,4 @@ public class RegistrationController {
         return registrationService.cancelRegistration(registrationId, authenticatedUser);
     }
 
-    @GetMapping("/events/{eventId}/count")
-    public RegistrationCountResponse getRegistrationCount(@PathVariable Long eventId) {
-        return registrationService.getRegistrationCount(eventId);
-    }
 }
