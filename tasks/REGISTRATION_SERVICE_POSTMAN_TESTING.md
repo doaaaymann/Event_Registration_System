@@ -203,12 +203,25 @@ Create a Postman environment and add these variables:
 - `registrationBaseUrl = http://localhost:8083`
 - `authBaseUrl = http://localhost:8081`
 - `participantToken =`
-- `organizerToken =`
 - `adminToken =`
 - `eventId =`
 - `registrationId =`
 
-## 10. Important Postman Rules
+## 10. Auth Note For Role Testing
+
+- Public `POST /api/auth/register` allows `PARTICIPANT` only.
+- For admin role checks, login with the seeded admin account:
+
+```json
+{
+  "email": "admin@event.local",
+  "password": "Admin12345"
+}
+```
+
+- These are default values from `config-server/src/main/resources/config/auth-service.yml` and can be overridden by environment variables.
+
+## 11. Important Postman Rules
 
 - Always use `{{registrationBaseUrl}}` for registration requests
 - Use `{{authBaseUrl}}` only for login
@@ -216,7 +229,7 @@ Create a Postman environment and add these variables:
 - Use `/registrations/100`, not `/registrations/{100}`
 - Test `registration-service` directly before testing through the gateway
 
-## 11. Postman Test Flow
+## 12. Postman Test Flow
 
 ### Request 1: Login Participant
 
@@ -259,7 +272,37 @@ const json = pm.response.json();
 pm.environment.set("participantToken", json.accessToken);
 ```
 
-### Request 2: Confirm Event Exists
+### Request 2: Login Admin
+
+- Method: `POST`
+- URL: `{{authBaseUrl}}/api/auth/login`
+
+Headers:
+
+- `Content-Type: application/json`
+
+Body:
+
+```json
+{
+  "email": "admin@event.local",
+  "password": "Admin12345"
+}
+```
+
+Expected:
+
+- `200 OK`
+- token includes role `ADMIN`
+
+Postman `Tests` tab:
+
+```javascript
+const json = pm.response.json();
+pm.environment.set("adminToken", json.accessToken);
+```
+
+### Request 3: Confirm Event Exists
 
 - Method: `GET`
 - URL: `http://localhost:8082/api/events/10`
@@ -285,7 +328,7 @@ const json = pm.response.json();
 pm.environment.set("eventId", json.id);
 ```
 
-### Request 3: Confirm Event Availability
+### Request 4: Confirm Event Availability
 
 - Method: `GET`
 - URL: `http://localhost:8082/api/events/{{eventId}}/availability`
@@ -304,7 +347,7 @@ Expected response should show:
 - `availableSeats > 0`
 - `registrationOpen = true`
 
-### Request 4: Create Registration
+### Request 5: Create Registration
 
 - Method: `POST`
 - URL: `{{registrationBaseUrl}}/api/registrations`
@@ -346,7 +389,7 @@ const json = pm.response.json();
 pm.environment.set("registrationId", json.id);
 ```
 
-### Request 5: Reject Duplicate Registration
+### Request 6: Reject Duplicate Registration
 
 - Method: `POST`
 - URL: `{{registrationBaseUrl}}/api/registrations`
@@ -376,7 +419,7 @@ Expected message:
 }
 ```
 
-### Request 6: Get My Registrations
+### Request 7: Get My Registrations
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/me`
@@ -390,7 +433,7 @@ Expected:
 - `200 OK`
 - array contains the registration created above
 
-### Request 7: Get Registration By Id
+### Request 8: Get Registration By Id
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/{{registrationId}}`
@@ -403,7 +446,7 @@ Expected:
 
 - `200 OK`
 
-### Request 8: Get Event Registration Count
+### Request 9: Get Event Registration Count
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/events/{{eventId}}/count`
@@ -425,7 +468,7 @@ Example response:
 }
 ```
 
-### Request 9: Participant Tracking Access Control
+### Request 10: Participant Tracking Access Control
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/events/{{eventId}}`
@@ -438,10 +481,8 @@ Expected:
 
 - `403 Forbidden`
 
-Headers (organizer owner or admin):
+Headers (admin):
 
-- `Authorization: Bearer {{organizerToken}}`
-  or
 - `Authorization: Bearer {{adminToken}}`
 
 Expected:
@@ -449,7 +490,7 @@ Expected:
 - `200 OK`
 - list of registrations for the event
 
-### Request 10: Cancel Registration
+### Request 11: Cancel Registration
 
 - Method: `DELETE`
 - URL: `{{registrationBaseUrl}}/api/registrations/{{registrationId}}`
@@ -475,7 +516,7 @@ Example response:
 }
 ```
 
-### Request 11: Confirm Count After Cancellation
+### Request 12: Confirm Count After Cancellation
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/events/{{eventId}}/count`
@@ -489,7 +530,7 @@ Expected:
 - `200 OK`
 - `registeredCount` decreases after cancellation
 
-### Request 12: Reject Missing Token
+### Request 13: Reject Missing Token
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/me`
@@ -500,7 +541,7 @@ Expected:
 
 - `401 Unauthorized`
 
-### Request 13: Reject Invalid Token
+### Request 14: Reject Invalid Token
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/me`
@@ -513,10 +554,10 @@ Expected:
 
 - `401 Unauthorized`
 
-## 12. Recommended Postman Order
+## 13. Recommended Postman Order
 
 1. Login participant
-2. Login organizer/admin
+2. Login admin
 3. Confirm event exists
 4. Confirm event availability
 5. Create registration
@@ -530,7 +571,7 @@ Expected:
 13. Test missing token
 14. Test invalid token
 
-## 13. Contract Confirmation Checklist
+## 14. Contract Confirmation Checklist
 
 Before you say your part is integrated, confirm:
 
@@ -560,7 +601,7 @@ Before you say your part is integrated, confirm:
 
 If these contracts differ, integration can fail even if your local tests pass.
 
-## 14. If Something Fails
+## 15. If Something Fails
 
 First, look at registration-service logs:
 
@@ -579,7 +620,7 @@ Then check:
 - `notification-service` is optional for Person 3 testing
 - did you use the latest token after login
 
-## 15. How Person 3 Knows The Registration Part Is Done
+## 16. How Person 3 Knows The Registration Part Is Done
 
 Person 3 can mark the registration task done when all of these are true:
 
@@ -591,13 +632,13 @@ Person 3 can mark the registration task done when all of these are true:
 - `/api/registrations/{registrationId}` works for the owner
 - cancellation works
 - `/api/registrations/events/{eventId}/count` works
-- `/api/registrations/events/{eventId}` returns `403` for participant and `200` for organizer/admin owner
+- `/api/registrations/events/{eventId}` returns `403` for participant and `200` for admin
 - missing token is rejected
 - invalid token is rejected
 - event-service contract is confirmed
 - notification-service contract check is deferred to Phase 5 integration
 
-## 16. Fast Final Checklist
+## 17. Fast Final Checklist
 
 Run tests:
 

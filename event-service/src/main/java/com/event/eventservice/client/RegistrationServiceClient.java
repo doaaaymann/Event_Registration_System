@@ -28,6 +28,9 @@ public class RegistrationServiceClient {
                 return 0;
             }
             return Math.max(response.getRegisteredCount(), 0);
+        } catch (IllegalStateException ex) {
+            log.warn("No registration-service instances available for event {}: {}", eventId, ex.getMessage());
+            return 0;
         } catch (RestClientException ex) {
             log.warn("Failed to fetch registration count for event {}: {}", eventId, ex.getMessage());
             return 0;
