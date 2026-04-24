@@ -39,7 +39,7 @@ eureka:
 
 security:
   jwt:
-    secret: ${JWT_SECRET:VGhpc0lzQVNlY3VyZUFuZFN1ZmZpY2llbnRseUxvbmdCYXNlNjRTZWNyZXRLZXlGb3JSZWdpc3RyYXRpb25TZXJ2aWNl}
+    secret: ${AUTH_JWT_SECRET:TXlTdXBlclNlY3JldEtleUZvckp3dEF1dGhTZXJ2aWNlMTIzNDU2Nzg5MDEyMzQ1Njc4OTA=}
 
 management:
   endpoints:
