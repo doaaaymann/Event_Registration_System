@@ -56,7 +56,8 @@ public class RegistrationService {
         return eventLockManager.executeWithLock(request.getEventId(),
                 () -> {
                     Long eventId = request.getEventId();
-                    if (registrationRepository.existsByEventIdAndParticipantId(eventId, authenticatedUser.getUserId())) {
+                    if (registrationRepository.existsByEventIdAndParticipantIdAndStatus(
+                            eventId, authenticatedUser.getUserId(), RegistrationStatus.REGISTERED)) {
                         throw new ConflictException("User is already registered for this event");
                     }
 
@@ -71,6 +72,7 @@ public class RegistrationService {
                     registration.setParticipantId(authenticatedUser.getUserId());
                     registration.setStatus(RegistrationStatus.REGISTERED);
                     registration.setRegisteredAt(LocalDateTime.now());
+                    registration.setCancelledAt(null);
 
                     Registration savedRegistration = registrationRepository.save(registration);
                     sendCreatedNotification(savedRegistration, event);

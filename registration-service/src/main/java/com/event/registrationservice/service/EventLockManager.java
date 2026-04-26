@@ -1,23 +1,30 @@
 package com.event.registrationservice.service;
 
 import org.springframework.stereotype.Component;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCallback;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 @Component
 public class EventLockManager {
 
-    private final ConcurrentHashMap<Long, ReentrantLock> locks = new ConcurrentHashMap<>();
+    private final JdbcTemplate jdbcTemplate;
+
+    public EventLockManager(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     public <T> T executeWithLock(Long eventId, Supplier<T> supplier) {
-        ReentrantLock lock = locks.computeIfAbsent(eventId, ignored -> new ReentrantLock());
-        lock.lock();
+        jdbcTemplate.execute("SELECT pg_advisory_xact_lock(?)", (PreparedStatementCallback<Void>) statement -> {
+            statement.setLong(1, eventId);
+            statement.execute();
+            return null;
+        });
         try {
             return supplier.get();
         } finally {
-            lock.unlock();
+            // Transaction-scoped advisory locks are released automatically on commit or rollback.
         }
     }
 }

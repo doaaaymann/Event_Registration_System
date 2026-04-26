@@ -67,6 +67,10 @@ services:
       AUTH_DB_URL: jdbc:postgresql://postgres:5432/auth_db
       AUTH_DB_USERNAME: postgres
       AUTH_DB_PASSWORD: postgres
+      AUTH_ADMIN_SEED_ENABLED: ${AUTH_ADMIN_SEED_ENABLED:-true}
+      AUTH_ADMIN_FULL_NAME: ${AUTH_ADMIN_FULL_NAME:-System Administrator}
+      AUTH_ADMIN_EMAIL: ${AUTH_ADMIN_EMAIL:-admin@event.local}
+      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD:-ChangeMeNow!123}
     depends_on:
       postgres:
         condition: service_healthy

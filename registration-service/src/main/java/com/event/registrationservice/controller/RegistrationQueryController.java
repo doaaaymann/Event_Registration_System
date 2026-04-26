@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/registrations")
@@ -21,5 +24,10 @@ public class RegistrationQueryController {
     @GetMapping("/events/{eventId}/count")
     public ResponseEntity<RegistrationCountResponse> getRegistrationCount(@PathVariable Long eventId) {
         return ResponseEntity.ok(registrationQueryService.getRegistrationCount(eventId));
+    }
+
+    @GetMapping("/events/counts")
+    public ResponseEntity<List<RegistrationCountResponse>> getRegistrationCounts(@RequestParam List<Long> eventIds) {
+        return ResponseEntity.ok(registrationQueryService.getRegistrationCounts(eventIds));
     }
 }

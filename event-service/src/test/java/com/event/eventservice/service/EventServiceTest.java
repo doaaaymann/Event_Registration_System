@@ -13,6 +13,7 @@ import com.event.eventservice.dto.response.EventResponse;
 import com.event.eventservice.entity.Event;
 import com.event.eventservice.entity.EventStatus;
 import com.event.eventservice.exception.BadRequestException;
+import com.event.eventservice.exception.DownstreamServiceException;
 import com.event.eventservice.exception.ResourceNotFoundException;
 import com.event.eventservice.repository.EventRepository;
 import com.event.eventservice.security.AuthUserPrincipal;
@@ -27,6 +28,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -185,7 +187,7 @@ class EventServiceTest {
         when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(registrationServiceClient.getRegisteredCount(10L)).thenReturn(0);
-        when(registrationServiceClient.getEventRegistrations(10L)).thenReturn(List.of(
+        when(registrationServiceClient.getEventRegistrationsOrEmpty(10L)).thenReturn(List.of(
                 registration(100L, 10L, 7L, "REGISTERED"),
                 registration(101L, 10L, 8L, "REGISTERED"),
                 registration(102L, 10L, 8L, "CANCELLED")
@@ -220,7 +222,7 @@ class EventServiceTest {
         when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(registrationServiceClient.getRegisteredCount(10L)).thenReturn(12);
-        when(registrationServiceClient.getEventRegistrations(10L)).thenReturn(List.of(
+        when(registrationServiceClient.getEventRegistrationsOrEmpty(10L)).thenReturn(List.of(
                 registration(100L, 10L, 7L, "REGISTERED"),
                 registration(101L, 10L, 9L, "REGISTERED")
         ));
@@ -254,6 +256,33 @@ class EventServiceTest {
         assertThatThrownBy(() -> eventService.getOrganizerEvents(organizerPrincipal, 99L))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Access is denied");
+    }
+
+    @Test
+    void getAllEventsUsesBatchRegistrationCounts() {
+        when(eventRepository.findAllByOrderByStartTimeAsc()).thenReturn(List.of(
+                event(10L, 2L, EventStatus.SCHEDULED),
+                event(11L, 2L, EventStatus.SCHEDULED)
+        ));
+        when(registrationServiceClient.getRegisteredCounts(List.of(10L, 11L)))
+                .thenReturn(Map.of(10L, 35, 11L, 10));
+
+        var response = eventService.getAllEvents();
+
+        assertThat(response).hasSize(2);
+        assertThat(response.get(0).getRegisteredCount()).isEqualTo(35);
+        assertThat(response.get(1).getRegisteredCount()).isEqualTo(10);
+    }
+
+    @Test
+    void getAvailabilityFailsClosedWhenRegistrationCountIsUnavailable() {
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event(10L, 2L, EventStatus.SCHEDULED)));
+        when(registrationServiceClient.getRegisteredCount(10L))
+                .thenThrow(new DownstreamServiceException("Registration count is unavailable for event 10"));
+
+        assertThatThrownBy(() -> eventService.getAvailability(10L))
+                .isInstanceOf(DownstreamServiceException.class)
+                .hasMessage("Registration count is unavailable for event 10");
     }
 
     @Test

@@ -35,6 +35,9 @@ public class AdminSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (!adminSeedProperties.isEnabled()) {
+            return;
+        }
         if (!StringUtils.hasText(adminSeedProperties.getEmail())
                 || !StringUtils.hasText(adminSeedProperties.getPassword())
                 || userRepository.existsByEmailIgnoreCase(adminSeedProperties.getEmail())) {

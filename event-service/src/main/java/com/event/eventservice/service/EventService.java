@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -66,15 +67,19 @@ public class EventService {
     }
 
     public List<EventSummaryResponse> getAllEvents() {
-        return eventRepository.findAllByOrderByStartTimeAsc().stream()
-                .map(this::toSummaryResponse)
+        List<Event> events = eventRepository.findAllByOrderByStartTimeAsc();
+        Map<Long, Integer> registeredCounts = getRegisteredCounts(events);
+        return events.stream()
+                .map(event -> toSummaryResponse(event, registeredCounts.getOrDefault(event.getId(), 0)))
                 .toList();
     }
 
     public List<EventSummaryResponse> getOrganizerEvents(AuthUserPrincipal principal, Long organizerId) {
         ensureOrganizerOwnerOrAdmin(principal, organizerId);
-        return eventRepository.findByOrganizerIdOrderByStartTimeAsc(organizerId).stream()
-                .map(this::toSummaryResponse)
+        List<Event> events = eventRepository.findByOrganizerIdOrderByStartTimeAsc(organizerId);
+        Map<Long, Integer> registeredCounts = getRegisteredCounts(events);
+        return events.stream()
+                .map(event -> toSummaryResponse(event, registeredCounts.getOrDefault(event.getId(), 0)))
                 .toList();
     }
 
@@ -182,8 +187,7 @@ public class EventService {
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id " + eventId));
     }
 
-    private EventSummaryResponse toSummaryResponse(Event event) {
-        int registeredCount = getRegisteredCount(event.getId());
+    private EventSummaryResponse toSummaryResponse(Event event, int registeredCount) {
         return new EventSummaryResponse(
                 event.getId(),
                 event.getTitle(),
@@ -220,6 +224,12 @@ public class EventService {
         return registrationServiceClient.getRegisteredCount(eventId);
     }
 
+    private Map<Long, Integer> getRegisteredCounts(List<Event> events) {
+        return registrationServiceClient.getRegisteredCounts(
+                events.stream().map(Event::getId).toList()
+        );
+    }
+
     private int calculateAvailableSeats(Integer maxSeats, int registeredCount) {
         return Math.max(maxSeats - registeredCount, 0);
     }
@@ -251,7 +261,7 @@ public class EventService {
     }
 
     private List<Long> getActiveParticipantIds(Long eventId) {
-        return registrationServiceClient.getEventRegistrations(eventId).stream()
+        return registrationServiceClient.getEventRegistrationsOrEmpty(eventId).stream()
                 .filter(registration -> "REGISTERED".equalsIgnoreCase(registration.getStatus()))
                 .map(RegistrationSummaryResponse::getParticipantId)
                 .filter(participantId -> participantId != null && participantId > 0)

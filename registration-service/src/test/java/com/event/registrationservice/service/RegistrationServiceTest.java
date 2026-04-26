@@ -65,7 +65,8 @@ class RegistrationServiceTest {
         CreateRegistrationRequest request = new CreateRegistrationRequest();
         request.setEventId(10L);
 
-        when(registrationRepository.existsByEventIdAndParticipantId(10L, 1L)).thenReturn(false);
+        when(registrationRepository.existsByEventIdAndParticipantIdAndStatus(10L, 1L, RegistrationStatus.REGISTERED))
+                .thenReturn(false);
         when(eventServiceClient.getEvent(10L)).thenReturn(scheduledEvent());
         when(eventServiceClient.getAvailability(10L)).thenReturn(availableSeats(4));
         when(registrationRepository.save(any(Registration.class))).thenAnswer(invocation -> {
@@ -106,7 +107,8 @@ class RegistrationServiceTest {
 
         CreateRegistrationRequest request = new CreateRegistrationRequest();
         request.setEventId(10L);
-        when(registrationRepository.existsByEventIdAndParticipantId(10L, 1L)).thenReturn(true);
+        when(registrationRepository.existsByEventIdAndParticipantIdAndStatus(10L, 1L, RegistrationStatus.REGISTERED))
+                .thenReturn(true);
 
         assertThatThrownBy(() -> registrationService.createRegistration(participant, request))
                 .isInstanceOf(ConflictException.class)
@@ -120,7 +122,8 @@ class RegistrationServiceTest {
         CreateRegistrationRequest request = new CreateRegistrationRequest();
         request.setEventId(10L);
 
-        when(registrationRepository.existsByEventIdAndParticipantId(10L, 1L)).thenReturn(false);
+        when(registrationRepository.existsByEventIdAndParticipantIdAndStatus(10L, 1L, RegistrationStatus.REGISTERED))
+                .thenReturn(false);
         when(eventServiceClient.getEvent(10L)).thenReturn(scheduledEvent());
         when(eventServiceClient.getAvailability(10L)).thenReturn(availability(0, true));
 
@@ -129,6 +132,29 @@ class RegistrationServiceTest {
                 .hasMessage("No seats available for this event");
 
         verify(registrationRepository, never()).save(any());
+    }
+
+    @Test
+    void createRegistrationAllowsReregistrationAfterCancellation() {
+        stubEventLockManager();
+
+        CreateRegistrationRequest request = new CreateRegistrationRequest();
+        request.setEventId(10L);
+
+        when(registrationRepository.existsByEventIdAndParticipantIdAndStatus(10L, 1L, RegistrationStatus.REGISTERED))
+                .thenReturn(false);
+        when(eventServiceClient.getEvent(10L)).thenReturn(scheduledEvent());
+        when(eventServiceClient.getAvailability(10L)).thenReturn(availableSeats(3));
+        when(registrationRepository.save(any(Registration.class))).thenAnswer(invocation -> {
+            Registration registration = invocation.getArgument(0);
+            registration.setId(101L);
+            return registration;
+        });
+
+        RegistrationResponse response = registrationService.createRegistration(participant, request);
+
+        assertThat(response.getId()).isEqualTo(101L);
+        assertThat(response.getStatus()).isEqualTo("REGISTERED");
     }
 
     @Test
