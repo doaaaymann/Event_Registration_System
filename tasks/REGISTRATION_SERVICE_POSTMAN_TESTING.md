@@ -16,7 +16,7 @@ It explains:
 Open a terminal in the project root and move into the repository:
 
 ```powershell
-cd C:\Users\doaaa\Documents\GitHub\Event_Registration_System-
+cd C:\Users\asus\OneDrive\Documents\GitHub\Event_Registration_System
 ```
 
 To confirm you are in the correct place:
@@ -136,7 +136,7 @@ Before changing code:
 Recommended local workflow:
 
 ```powershell
-cd C:\Users\doaaa\Documents\GitHub\Event_Registration_System-
+cd C:\Users\asus\OneDrive\Documents\GitHub\Event_Registration_System
 ```
 
 ```powershell
@@ -201,8 +201,12 @@ From `notification-service` (Phase 5 integration, optional for Person 3 completi
 Create a Postman environment and add these variables:
 
 - `registrationBaseUrl = http://localhost:8083`
+- `eventBaseUrl = http://localhost:8082`
 - `authBaseUrl = http://localhost:8081`
+- `participantEmail = testregnotify@example.com`
+- `participantPassword = Secret123`
 - `participantToken =`
+- `participantUserId =`
 - `adminToken =`
 - `eventId =`
 - `registrationId =`
@@ -231,7 +235,34 @@ Create a Postman environment and add these variables:
 
 ## 12. Postman Test Flow
 
-### Request 1: Login Participant
+### Request 1: Register Participant
+
+- Method: `POST`
+- URL: `{{authBaseUrl}}/api/auth/register`
+
+Headers:
+
+- `Content-Type: application/json`
+
+Body:
+
+```json
+{
+  "fullName": "Registration Flow User",
+  "email": "{{participantEmail}}",
+  "password": "{{participantPassword}}",
+  "role": "PARTICIPANT"
+}
+```
+
+Expected:
+
+- `201 Created` on the first run
+- `400 Bad Request` with `Email is already registered` on later runs
+
+If the email already exists, keep the same environment values and continue to login.
+
+### Request 2: Login Participant
 
 - Method: `POST`
 - URL: `{{authBaseUrl}}/api/auth/login`
@@ -244,8 +275,8 @@ Body:
 
 ```json
 {
-  "email": "ali@example.com",
-  "password": "Secret123"
+  "email": "{{participantEmail}}",
+  "password": "{{participantPassword}}"
 }
 ```
 
@@ -260,7 +291,7 @@ Example response:
   "accessToken": "jwt-token",
   "tokenType": "Bearer",
   "userId": 2,
-  "email": "ali@example.com",
+  "email": "{{participantEmail}}",
   "roles": ["PARTICIPANT"]
 }
 ```
@@ -270,9 +301,10 @@ Postman `Tests` tab:
 ```javascript
 const json = pm.response.json();
 pm.environment.set("participantToken", json.accessToken);
+pm.environment.set("participantUserId", json.userId);
 ```
 
-### Request 2: Login Admin
+### Request 3: Login Admin
 
 - Method: `POST`
 - URL: `{{authBaseUrl}}/api/auth/login`
@@ -302,10 +334,45 @@ const json = pm.response.json();
 pm.environment.set("adminToken", json.accessToken);
 ```
 
-### Request 3: Confirm Event Exists
+### Request 4: Create Event As Admin
+
+- Method: `POST`
+- URL: `{{eventBaseUrl}}/api/events`
+
+Headers:
+
+- `Authorization: Bearer {{adminToken}}`
+- `Content-Type: application/json`
+
+Body:
+
+```json
+{
+  "title": "Registration Notification Test",
+  "description": "Verify registration to notification flow",
+  "location": "Hall C",
+  "startTime": "2026-05-10T10:00:00",
+  "endTime": "2026-05-10T12:00:00",
+  "maxSeats": 25,
+  "organizerId": 1
+}
+```
+
+Expected:
+
+- `201 Created`
+
+Postman `Tests` tab:
+
+```javascript
+const json = pm.response.json();
+pm.environment.set("eventId", json.id);
+```
+
+### Request 5: Confirm Event Exists
 
 - Method: `GET`
-- URL: `http://localhost:8082/api/events/10`
+- URL: `{{eventBaseUrl}}/api/events/{{eventId}}`
 
 Headers:
 
@@ -328,10 +395,10 @@ const json = pm.response.json();
 pm.environment.set("eventId", json.id);
 ```
 
-### Request 4: Confirm Event Availability
+### Request 6: Confirm Event Availability
 
 - Method: `GET`
-- URL: `http://localhost:8082/api/events/{{eventId}}/availability`
+- URL: `{{eventBaseUrl}}/api/events/{{eventId}}/availability`
 
 Headers:
 
@@ -347,7 +414,7 @@ Expected response should show:
 - `availableSeats > 0`
 - `registrationOpen = true`
 
-### Request 5: Create Registration
+### Request 7: Create Registration
 
 - Method: `POST`
 - URL: `{{registrationBaseUrl}}/api/registrations`
@@ -389,7 +456,7 @@ const json = pm.response.json();
 pm.environment.set("registrationId", json.id);
 ```
 
-### Request 6: Reject Duplicate Registration
+### Request 8: Reject Duplicate Registration
 
 - Method: `POST`
 - URL: `{{registrationBaseUrl}}/api/registrations`
@@ -419,7 +486,7 @@ Expected message:
 }
 ```
 
-### Request 7: Get My Registrations
+### Request 9: Get My Registrations
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/me`
@@ -433,7 +500,7 @@ Expected:
 - `200 OK`
 - array contains the registration created above
 
-### Request 8: Get Registration By Id
+### Request 10: Get Registration By Id
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/{{registrationId}}`
@@ -446,7 +513,7 @@ Expected:
 
 - `200 OK`
 
-### Request 9: Get Event Registration Count
+### Request 11: Get Event Registration Count
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/events/{{eventId}}/count`
@@ -468,7 +535,7 @@ Example response:
 }
 ```
 
-### Request 10: Participant Tracking Access Control
+### Request 12: Participant Tracking Access Control
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/events/{{eventId}}`
@@ -490,7 +557,7 @@ Expected:
 - `200 OK`
 - list of registrations for the event
 
-### Request 11: Cancel Registration
+### Request 13: Cancel Registration
 
 - Method: `DELETE`
 - URL: `{{registrationBaseUrl}}/api/registrations/{{registrationId}}`
@@ -516,7 +583,23 @@ Example response:
 }
 ```
 
-### Request 12: Confirm Count After Cancellation
+### Request 14: Confirm Count After Cancellation
+
+After cancellation, if `notification-service` is also running, fetch notifications from:
+
+```text
+GET http://localhost:8084/api/notifications/users/{{participantUserId}}
+```
+
+Expected latest notification:
+
+```json
+{
+  "type": "REGISTRATION_CANCELLED",
+  "title": "Registration Cancelled",
+  "message": "Your registration was cancelled for Registration Notification Test"
+}
+```
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/events/{{eventId}}/count`
@@ -530,7 +613,7 @@ Expected:
 - `200 OK`
 - `registeredCount` decreases after cancellation
 
-### Request 13: Reject Missing Token
+### Request 15: Reject Missing Token
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/me`
@@ -541,7 +624,7 @@ Expected:
 
 - `401 Unauthorized`
 
-### Request 14: Reject Invalid Token
+### Request 16: Reject Invalid Token
 
 - Method: `GET`
 - URL: `{{registrationBaseUrl}}/api/registrations/me`

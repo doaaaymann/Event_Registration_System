@@ -1,6 +1,9 @@
 package com.event.eventservice.service;
 
+import com.event.eventservice.client.NotificationServiceClient;
 import com.event.eventservice.client.RegistrationServiceClient;
+import com.event.eventservice.dto.client.NotificationTriggerRequest;
+import com.event.eventservice.dto.client.RegistrationSummaryResponse;
 import com.event.eventservice.dto.request.CreateEventRequest;
 import com.event.eventservice.dto.request.RescheduleEventRequest;
 import com.event.eventservice.dto.request.UpdateEventRequest;
@@ -29,6 +32,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,6 +44,9 @@ class EventServiceTest {
 
     @Mock
     private RegistrationServiceClient registrationServiceClient;
+
+    @Mock
+    private NotificationServiceClient notificationServiceClient;
 
     @InjectMocks
     private EventService eventService;
@@ -178,10 +185,20 @@ class EventServiceTest {
         when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(registrationServiceClient.getRegisteredCount(10L)).thenReturn(0);
+        when(registrationServiceClient.getEventRegistrations(10L)).thenReturn(List.of(
+                registration(100L, 10L, 7L, "REGISTERED"),
+                registration(101L, 10L, 8L, "REGISTERED"),
+                registration(102L, 10L, 8L, "CANCELLED")
+        ));
 
         EventResponse response = eventService.cancelEvent(organizerPrincipal, 10L);
 
         assertThat(response.getStatus()).isEqualTo(EventStatus.CANCELLED);
+        verify(notificationServiceClient).sendEventCancelled(argThat(request ->
+                request.getUserIds().equals(List.of(7L, 8L))
+                        && "EVENT_CANCELLED".equals(request.getType())
+                        && "Event Cancelled".equals(request.getTitle())
+        ));
     }
 
     @Test
@@ -203,11 +220,20 @@ class EventServiceTest {
         when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(registrationServiceClient.getRegisteredCount(10L)).thenReturn(12);
+        when(registrationServiceClient.getEventRegistrations(10L)).thenReturn(List.of(
+                registration(100L, 10L, 7L, "REGISTERED"),
+                registration(101L, 10L, 9L, "REGISTERED")
+        ));
 
         EventResponse response = eventService.rescheduleEvent(organizerPrincipal, 10L, request);
 
         assertThat(response.getStatus()).isEqualTo(EventStatus.RESCHEDULED);
         assertThat(response.getStartTime()).isEqualTo("2026-05-03T10:00");
+        verify(notificationServiceClient).sendEventRescheduled(argThat(requestBody ->
+                requestBody.getUserIds().equals(List.of(7L, 9L))
+                        && "EVENT_RESCHEDULED".equals(requestBody.getType())
+                        && "Event Rescheduled".equals(requestBody.getTitle())
+        ));
     }
 
     @Test
@@ -251,5 +277,14 @@ class EventServiceTest {
         event.setOrganizerId(organizerId);
         event.setStatus(status);
         return event;
+    }
+
+    private static RegistrationSummaryResponse registration(Long id, Long eventId, Long participantId, String status) {
+        RegistrationSummaryResponse response = new RegistrationSummaryResponse();
+        response.setId(id);
+        response.setEventId(eventId);
+        response.setParticipantId(participantId);
+        response.setStatus(status);
+        return response;
     }
 }

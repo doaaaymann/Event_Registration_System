@@ -1,6 +1,9 @@
 package com.event.eventservice.service;
 
+import com.event.eventservice.client.NotificationServiceClient;
 import com.event.eventservice.client.RegistrationServiceClient;
+import com.event.eventservice.dto.client.NotificationTriggerRequest;
+import com.event.eventservice.dto.client.RegistrationSummaryResponse;
 import com.event.eventservice.dto.request.CreateEventRequest;
 import com.event.eventservice.dto.request.RescheduleEventRequest;
 import com.event.eventservice.dto.request.UpdateEventRequest;
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -26,10 +30,14 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final RegistrationServiceClient registrationServiceClient;
+    private final NotificationServiceClient notificationServiceClient;
 
-    public EventService(EventRepository eventRepository, RegistrationServiceClient registrationServiceClient) {
+    public EventService(EventRepository eventRepository,
+                        RegistrationServiceClient registrationServiceClient,
+                        NotificationServiceClient notificationServiceClient) {
         this.eventRepository = eventRepository;
         this.registrationServiceClient = registrationServiceClient;
+        this.notificationServiceClient = notificationServiceClient;
     }
 
     @Transactional
@@ -99,7 +107,9 @@ public class EventService {
             throw new BadRequestException("Event is already cancelled");
         }
         event.setStatus(EventStatus.CANCELLED);
-        return toEventResponse(eventRepository.save(event));
+        Event savedEvent = eventRepository.save(event);
+        sendEventCancelledNotifications(savedEvent);
+        return toEventResponse(savedEvent);
     }
 
     @Transactional
@@ -113,7 +123,9 @@ public class EventService {
         event.setEndTime(request.getEndTime());
         event.setStatus(EventStatus.RESCHEDULED);
 
-        return toEventResponse(eventRepository.save(event));
+        Event savedEvent = eventRepository.save(event);
+        sendEventRescheduledNotifications(savedEvent);
+        return toEventResponse(savedEvent);
     }
 
     public EventAvailabilityResponse getAvailability(Long eventId) {
@@ -210,5 +222,40 @@ public class EventService {
 
     private int calculateAvailableSeats(Integer maxSeats, int registeredCount) {
         return Math.max(maxSeats - registeredCount, 0);
+    }
+
+    private void sendEventCancelledNotifications(Event event) {
+        List<Long> recipientIds = getActiveParticipantIds(event.getId());
+        if (recipientIds.isEmpty()) {
+            return;
+        }
+        notificationServiceClient.sendEventCancelled(new NotificationTriggerRequest(
+                recipientIds,
+                "EVENT_CANCELLED",
+                "Event Cancelled",
+                event.getTitle() + " was cancelled"
+        ));
+    }
+
+    private void sendEventRescheduledNotifications(Event event) {
+        List<Long> recipientIds = getActiveParticipantIds(event.getId());
+        if (recipientIds.isEmpty()) {
+            return;
+        }
+        notificationServiceClient.sendEventRescheduled(new NotificationTriggerRequest(
+                recipientIds,
+                "EVENT_RESCHEDULED",
+                "Event Rescheduled",
+                event.getTitle() + " has been rescheduled"
+        ));
+    }
+
+    private List<Long> getActiveParticipantIds(Long eventId) {
+        return registrationServiceClient.getEventRegistrations(eventId).stream()
+                .filter(registration -> "REGISTERED".equalsIgnoreCase(registration.getStatus()))
+                .map(RegistrationSummaryResponse::getParticipantId)
+                .filter(participantId -> participantId != null && participantId > 0)
+                .distinct()
+                .collect(Collectors.toList());
     }
 }

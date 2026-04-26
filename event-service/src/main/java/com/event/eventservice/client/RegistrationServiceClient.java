@@ -1,11 +1,15 @@
 package com.event.eventservice.client;
 
+import com.event.eventservice.dto.client.RegistrationSummaryResponse;
 import com.event.eventservice.dto.response.RegistrationCountResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+
+import java.util.List;
 
 @Component
 public class RegistrationServiceClient {
@@ -34,6 +38,23 @@ public class RegistrationServiceClient {
         } catch (RestClientException ex) {
             log.warn("Failed to fetch registration count for event {}: {}", eventId, ex.getMessage());
             return 0;
+        }
+    }
+
+    public List<RegistrationSummaryResponse> getEventRegistrations(Long eventId) {
+        try {
+            List<RegistrationSummaryResponse> response = restClient.get()
+                    .uri("/api/registrations/events/{eventId}", eventId)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {
+                    });
+            return response == null ? List.of() : response;
+        } catch (IllegalStateException ex) {
+            log.warn("No registration-service instances available for event registrations {}: {}", eventId, ex.getMessage());
+            return List.of();
+        } catch (RestClientException ex) {
+            log.warn("Failed to fetch registrations for event {}: {}", eventId, ex.getMessage());
+            return List.of();
         }
     }
 }
