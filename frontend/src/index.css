@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  font-family: "Aptos", "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.9), transparent 30%),
+    linear-gradient(180deg, #f8f7f4 0%, #f3f1ec 100%);
+  color: #111827;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.panel {
+  @apply rounded-[28px] border border-stone-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.04)];
+}
+
+.panel-soft {
+  @apply rounded-3xl border border-stone-200 bg-stone-50/80;
+}
+
+.field {
+  @apply w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition;
+}
+
+.btn-primary {
+  @apply btn bg-slate-900 text-white hover:bg-slate-700;
+}
+
+.btn-secondary {
+  @apply btn border border-stone-300 bg-white text-slate-700 hover:bg-stone-50;
+}
+
+.btn-danger {
+  @apply btn bg-rose-600 text-white hover:bg-rose-500;
+}
+
+.btn-ghost {
+  @apply btn text-slate-600 hover:bg-stone-100;
+}
+
+.pill {
+  @apply inline-flex items-center rounded-full border border-stone-200 bg-stone-100 px-3 py-1 text-xs font-medium text-slate-600;
+}
