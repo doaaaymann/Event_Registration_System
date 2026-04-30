@@ -3,6 +3,7 @@ package com.event.notificationservice.service;
 import com.event.notificationservice.dto.request.CreateNotificationRequest;
 import com.event.notificationservice.dto.request.InternalNotificationTriggerRequest;
 import com.event.notificationservice.dto.response.NotificationResponse;
+import com.event.notificationservice.config.InternalApiProperties;
 import com.event.notificationservice.entity.Notification;
 import com.event.notificationservice.exception.BadRequestException;
 import com.event.notificationservice.exception.ForbiddenOperationException;
@@ -23,6 +24,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -34,6 +36,9 @@ class NotificationServiceTest {
     @Mock
     private NotificationRepository notificationRepository;
 
+    @Mock
+    private InternalApiProperties internalApiProperties;
+
     @InjectMocks
     private NotificationService notificationService;
 
@@ -44,6 +49,7 @@ class NotificationServiceTest {
     void setUp() {
         participant = new AuthenticatedUser(1L, "participant@example.com", List.of("PARTICIPANT"));
         admin = new AuthenticatedUser(99L, "admin@example.com", List.of("ADMIN"));
+        lenient().when(internalApiProperties.getKey()).thenReturn("test-internal-key");
     }
 
     @Test
@@ -131,7 +137,7 @@ class NotificationServiceTest {
             return notification;
         });
 
-        List<NotificationResponse> responses = notificationService.handleInternalTrigger(participant, request);
+        List<NotificationResponse> responses = notificationService.handleInternalTrigger("test-internal-key", request);
 
         assertThat(responses).hasSize(3);
         assertThat(responses).extracting(NotificationResponse::userId).containsExactly(1L, 2L, 3L);
@@ -148,8 +154,21 @@ class NotificationServiceTest {
         request.setTitle("Event Cancelled");
         request.setMessage("Spring Boot Workshop was cancelled");
 
-        assertThatThrownBy(() -> notificationService.handleInternalTrigger(admin, request))
+        assertThatThrownBy(() -> notificationService.handleInternalTrigger("test-internal-key", request))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("At least one recipient userId is required");
+    }
+
+    @Test
+    void handleInternalTriggerRejectsInvalidApiKey() {
+        InternalNotificationTriggerRequest request = new InternalNotificationTriggerRequest();
+        request.setUserId(1L);
+        request.setType("EVENT_CANCELLED");
+        request.setTitle("Event Cancelled");
+        request.setMessage("Spring Boot Workshop was cancelled");
+
+        assertThatThrownBy(() -> notificationService.handleInternalTrigger("wrong-key", request))
+                .isInstanceOf(ForbiddenOperationException.class)
+                .hasMessage("Invalid internal notification API key");
     }
 }

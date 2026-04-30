@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
 
@@ -50,29 +51,29 @@ public class NotificationController {
 
     @PostMapping("/internal/registration-created")
     @ResponseStatus(HttpStatus.CREATED)
-    public List<NotificationResponse> handleRegistrationCreated(@Valid @RequestBody InternalNotificationTriggerRequest request,
-                                                                @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
-        return notificationService.handleInternalTrigger(authenticatedUser, request);
+    public List<NotificationResponse> handleRegistrationCreated(@RequestHeader(name = "X-Internal-Api-Key", required = false) String internalApiKey,
+                                                                @Valid @RequestBody InternalNotificationTriggerRequest request) {
+        return notificationService.handleInternalTrigger(internalApiKey, request);
     }
 
     @PostMapping("/internal/registration-cancelled")
     @ResponseStatus(HttpStatus.CREATED)
-    public List<NotificationResponse> handleRegistrationCancelled(@Valid @RequestBody InternalNotificationTriggerRequest request,
-                                                                  @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
-        return notificationService.handleInternalTrigger(authenticatedUser, request);
+    public List<NotificationResponse> handleRegistrationCancelled(@RequestHeader(name = "X-Internal-Api-Key", required = false) String internalApiKey,
+                                                                  @Valid @RequestBody InternalNotificationTriggerRequest request) {
+        return notificationService.handleInternalTrigger(internalApiKey, request);
     }
 
     @PostMapping("/internal/event-cancelled")
     @ResponseStatus(HttpStatus.CREATED)
-    public List<NotificationResponse> handleEventCancelled(@Valid @RequestBody InternalNotificationTriggerRequest request,
-                                                           @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
-        return notificationService.handleInternalTrigger(authenticatedUser, request);
+    public List<NotificationResponse> handleEventCancelled(@RequestHeader(name = "X-Internal-Api-Key", required = false) String internalApiKey,
+                                                           @Valid @RequestBody InternalNotificationTriggerRequest request) {
+        return notificationService.handleInternalTrigger(internalApiKey, request);
     }
 
     @PostMapping("/internal/event-rescheduled")
     @ResponseStatus(HttpStatus.CREATED)
-    public List<NotificationResponse> handleEventRescheduled(@Valid @RequestBody InternalNotificationTriggerRequest request,
-                                                             @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
-        return notificationService.handleInternalTrigger(authenticatedUser, request);
+    public List<NotificationResponse> handleEventRescheduled(@RequestHeader(name = "X-Internal-Api-Key", required = false) String internalApiKey,
+                                                             @Valid @RequestBody InternalNotificationTriggerRequest request) {
+        return notificationService.handleInternalTrigger(internalApiKey, request);
     }
 }

@@ -48,7 +48,7 @@ This project was updated on `2026-04-26` to address the runtime and architecture
 Important note:
 - If you already have an old Docker volume, the previously seeded admin user may still exist with its old password.
 - In my live test environment, the existing persisted admin account still used `Admin12345` because the old database volume was reused.
-- On a fresh volume created from the current Compose file, the demo password is `ChangeMeNow!123`.
+- On a fresh volume created from the current Compose file, the demo password is `EventAdmin123!`.
 
 ### 6. Event list/count coupling reduced
 

@@ -70,7 +70,8 @@ services:
       AUTH_ADMIN_SEED_ENABLED: ${AUTH_ADMIN_SEED_ENABLED:-true}
       AUTH_ADMIN_FULL_NAME: ${AUTH_ADMIN_FULL_NAME:-System Administrator}
       AUTH_ADMIN_EMAIL: ${AUTH_ADMIN_EMAIL:-admin@event.local}
-      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD:-ChangeMeNow!123}
+      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD:-EventAdmin123!}
+      INTERNAL_NOTIFICATION_API_KEY: ${INTERNAL_NOTIFICATION_API_KEY:-event-system-internal-key}
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,6 +94,7 @@ services:
       EVENT_DB_URL: jdbc:postgresql://postgres:5432/event_db
       EVENT_DB_USERNAME: postgres
       EVENT_DB_PASSWORD: postgres
+      INTERNAL_NOTIFICATION_API_KEY: ${INTERNAL_NOTIFICATION_API_KEY:-event-system-internal-key}
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,6 +117,7 @@ services:
       REGISTRATION_DB_URL: jdbc:postgresql://postgres:5432/registration_db
       REGISTRATION_DB_USERNAME: postgres
       REGISTRATION_DB_PASSWORD: postgres
+      INTERNAL_NOTIFICATION_API_KEY: ${INTERNAL_NOTIFICATION_API_KEY:-event-system-internal-key}
     depends_on:
       postgres:
         condition: service_healthy
@@ -137,6 +140,7 @@ services:
       NOTIFICATION_DB_URL: jdbc:postgresql://postgres:5432/notification_db
       NOTIFICATION_DB_USERNAME: postgres
       NOTIFICATION_DB_PASSWORD: postgres
+      INTERNAL_NOTIFICATION_API_KEY: ${INTERNAL_NOTIFICATION_API_KEY:-event-system-internal-key}
     depends_on:
       postgres:
         condition: service_healthy

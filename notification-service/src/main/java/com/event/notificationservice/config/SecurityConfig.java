@@ -1,6 +1,7 @@
 package com.event.notificationservice.config;
 
 import com.event.notificationservice.security.JwtAuthenticationFilter;
+import com.event.notificationservice.config.InternalApiProperties;
 import com.event.notificationservice.security.JwtProperties;
 import com.event.notificationservice.security.RestAccessDeniedHandler;
 import com.event.notificationservice.security.RestAuthenticationEntryPoint;
@@ -19,7 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, InternalApiProperties.class})
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -46,6 +47,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/notifications/internal/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -1,7 +1,9 @@
 package com.event.notificationservice.controller;
 
 import com.event.notificationservice.dto.request.CreateNotificationRequest;
+import com.event.notificationservice.dto.request.InternalNotificationTriggerRequest;
 import com.event.notificationservice.dto.response.NotificationResponse;
+import com.event.notificationservice.config.InternalApiProperties;
 import com.event.notificationservice.exception.GlobalExceptionHandler;
 import com.event.notificationservice.exception.ResourceNotFoundException;
 import com.event.notificationservice.security.AuthenticatedUser;
@@ -44,6 +46,9 @@ class NotificationControllerTest {
 
     @MockBean
     private NotificationService notificationService;
+
+    @MockBean
+    private InternalApiProperties internalApiProperties;
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -105,5 +110,26 @@ class NotificationControllerTest {
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value("Notification not found"))
                 .andExpect(jsonPath("$.path").value("/api/notifications/999/read"));
+    }
+
+    @Test
+    void internalTriggerReturnsCreatedResponse() throws Exception {
+        InternalNotificationTriggerRequest request = new InternalNotificationTriggerRequest();
+        request.setUserId(1L);
+        request.setType("EVENT_RESCHEDULED");
+        request.setTitle("Event Rescheduled");
+        request.setMessage("Workshop moved");
+
+        when(notificationService.handleInternalTrigger(eq("test-internal-key"), ArgumentMatchers.any()))
+                .thenReturn(List.of(new NotificationResponse(
+                        601L, 1L, "EVENT_RESCHEDULED", "Event Rescheduled", "Workshop moved", false, LocalDateTime.now()
+                )));
+
+        mockMvc.perform(post("/api/notifications/internal/event-rescheduled")
+                        .header("X-Internal-Api-Key", "test-internal-key")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$[0].id").value(601L));
     }
 }

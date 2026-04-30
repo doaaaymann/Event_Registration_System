@@ -258,7 +258,7 @@ Create a Postman environment and add these variables:
 ```json
 {
   "email": "admin@event.local",
-  "password": "Admin12345"
+  "password": "EventAdmin123!"
 }
 ```
 
@@ -269,6 +269,7 @@ Create a Postman environment and add these variables:
 - Always use `{{notificationBaseUrl}}` for notification requests
 - Use `{{authBaseUrl}}` only for login
 - For protected endpoints, send `Authorization: Bearer {{participantToken}}` or `Authorization: Bearer {{adminToken}}`
+- For `/api/notifications/internal/**`, also send `X-Internal-Api-Key: event-system-internal-key` unless you overrode `INTERNAL_NOTIFICATION_API_KEY`
 - Use `/notifications/501/read`, not `/notifications/{501}/read`
 - Test `notification-service` directly before testing through the gateway
 
@@ -345,7 +346,7 @@ Body:
 ```json
 {
   "email": "admin@event.local",
-  "password": "Admin12345"
+  "password": "EventAdmin123!"
 }
 ```
 
@@ -468,8 +469,8 @@ Example response:
 
 Headers:
 
-- `Authorization: Bearer {{participantToken}}`
 - `Content-Type: application/json`
+- `X-Internal-Api-Key: event-system-internal-key`
 
 Body:
 
@@ -494,8 +495,8 @@ Expected:
 
 Headers:
 
-- `Authorization: Bearer {{participantToken}}`
 - `Content-Type: application/json`
+- `X-Internal-Api-Key: event-system-internal-key`
 
 Body:
 
@@ -520,8 +521,8 @@ Expected:
 
 Headers:
 
-- `Authorization: Bearer {{adminToken}}`
 - `Content-Type: application/json`
+- `X-Internal-Api-Key: event-system-internal-key`
 
 Body:
 
@@ -546,8 +547,8 @@ Expected:
 
 Headers:
 
-- `Authorization: Bearer {{adminToken}}`
 - `Content-Type: application/json`
+- `X-Internal-Api-Key: event-system-internal-key`
 
 Body:
 
@@ -801,6 +802,7 @@ Then check:
 
 - did you use `{{notificationBaseUrl}} = http://localhost:8084`
 - did you send `Authorization: Bearer {{participantToken}}` or `{{adminToken}}`
+- for `/api/notifications/internal/**`, did you send `X-Internal-Api-Key`
 - does the token contain the expected role
 - is PostgreSQL running
 - did Flyway create the `notifications` table

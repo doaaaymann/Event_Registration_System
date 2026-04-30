@@ -3,6 +3,7 @@ package com.event.notificationservice.service;
 import com.event.notificationservice.dto.request.CreateNotificationRequest;
 import com.event.notificationservice.dto.request.InternalNotificationTriggerRequest;
 import com.event.notificationservice.dto.response.NotificationResponse;
+import com.event.notificationservice.config.InternalApiProperties;
 import com.event.notificationservice.entity.Notification;
 import com.event.notificationservice.exception.BadRequestException;
 import com.event.notificationservice.exception.ForbiddenOperationException;
@@ -21,9 +22,12 @@ import java.util.Set;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final InternalApiProperties internalApiProperties;
 
-    public NotificationService(NotificationRepository notificationRepository) {
+    public NotificationService(NotificationRepository notificationRepository,
+                               InternalApiProperties internalApiProperties) {
         this.notificationRepository = notificationRepository;
+        this.internalApiProperties = internalApiProperties;
     }
 
     @Transactional
@@ -63,9 +67,9 @@ public class NotificationService {
     }
 
     @Transactional
-    public List<NotificationResponse> handleInternalTrigger(AuthenticatedUser authenticatedUser,
+    public List<NotificationResponse> handleInternalTrigger(String internalApiKey,
                                                             InternalNotificationTriggerRequest request) {
-        requireAuthenticatedUser(authenticatedUser);
+        validateInternalApiKey(internalApiKey);
         validateInternalRequest(request);
         return resolveRecipientIds(request).stream()
                 .map(userId -> buildNotification(userId, request.getType(), request.getTitle(), request.getMessage()))
@@ -99,6 +103,15 @@ public class NotificationService {
         validateTextField(request.getType(), "type");
         validateTextField(request.getTitle(), "title");
         validateTextField(request.getMessage(), "message");
+    }
+
+    private void validateInternalApiKey(String internalApiKey) {
+        if (internalApiProperties.getKey() == null || internalApiProperties.getKey().isBlank()) {
+            throw new ForbiddenOperationException("Internal notification API key is not configured");
+        }
+        if (internalApiKey == null || !internalApiProperties.getKey().equals(internalApiKey)) {
+            throw new ForbiddenOperationException("Invalid internal notification API key");
+        }
     }
 
     private void enforceCreatePermission(AuthenticatedUser authenticatedUser, Long targetUserId) {

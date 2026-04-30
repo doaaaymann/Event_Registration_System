@@ -213,15 +213,14 @@ The auth service seeds a default admin account.
 Use:
 
 - email: `admin@event.local`
-- password: `Admin12345`
+- password: `EventAdmin123!`
 
 Important note:
 
 - public organizer registration is rejected by `auth-service`
+- admin can create organizers through `POST /api/auth/admin/users`
 - the current easiest manual test actor for event management is the seeded admin account
 - event-service still enforces organizer or admin permissions
-
-If the team later adds organizer creation by admin, you can repeat the same tests with a real organizer token.
 
 ## 9. Postman Setup
 
@@ -263,7 +262,7 @@ Body:
 ```json
 {
   "email": "admin@event.local",
-  "password": "Admin12345"
+  "password": "EventAdmin123!"
 }
 ```
 

@@ -219,7 +219,7 @@ Create a Postman environment and add these variables:
 ```json
 {
   "email": "admin@event.local",
-  "password": "Admin12345"
+  "password": "EventAdmin123!"
 }
 ```
 
@@ -318,7 +318,7 @@ Body:
 ```json
 {
   "email": "admin@event.local",
-  "password": "Admin12345"
+  "password": "EventAdmin123!"
 }
 ```
 

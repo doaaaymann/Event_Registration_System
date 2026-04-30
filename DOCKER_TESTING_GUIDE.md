@@ -136,28 +136,14 @@ Expected output pattern:
 Fresh database expected demo credentials:
 
 - email: `admin@event.local`
-- password: `ChangeMeNow!123`
-
-If you reused an old PostgreSQL Docker volume, the old seeded password may still be:
-
-- `Admin12345`
+- password: `EventAdmin123!`
 
 ```powershell
 $adminLogin = Invoke-RestMethod `
   -Uri http://localhost:8081/api/auth/login `
   -Method Post `
   -ContentType 'application/json' `
-  -Body '{"email":"admin@event.local","password":"ChangeMeNow!123"}'
-```
-
-If that fails on an old reused volume:
-
-```powershell
-$adminLogin = Invoke-RestMethod `
-  -Uri http://localhost:8081/api/auth/login `
-  -Method Post `
-  -ContentType 'application/json' `
-  -Body '{"email":"admin@event.local","password":"Admin12345"}'
+  -Body '{"email":"admin@event.local","password":"EventAdmin123!"}'
 ```
 
 Expected output pattern:
@@ -343,7 +329,7 @@ $gatewayAdminLogin = Invoke-RestMethod `
   -Uri http://localhost:8080/api/auth/login `
   -Method Post `
   -ContentType 'application/json' `
-  -Body '{"email":"admin@event.local","password":"Admin12345"}'
+  -Body '{"email":"admin@event.local","password":"EventAdmin123!"}'
 ```
 
 Expected output:
@@ -439,4 +425,4 @@ I personally verified these runtime results in this workspace:
 One environment-specific note from my run:
 
 - because the existing Docker volume already contained an older admin row, the working admin password in the live test environment was `Admin12345`
-- on a fresh database created from the current Compose file, the expected demo password is `ChangeMeNow!123`
+- on a fresh database created from the current Compose file, the expected demo password is `EventAdmin123!`

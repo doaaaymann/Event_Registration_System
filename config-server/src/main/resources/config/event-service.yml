@@ -22,6 +22,8 @@ spring:
       password: disabled
 
 application:
+  internal-api:
+    key: ${INTERNAL_NOTIFICATION_API_KEY:event-system-internal-key}
   security:
     jwt:
       secret: ${AUTH_JWT_SECRET:TXlTdXBlclNlY3JldEtleUZvckp3dEF1dGhTZXJ2aWNlMTIzNDU2Nzg5MDEyMzQ1Njc4OTA=}
