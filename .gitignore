@@ -24,3 +24,5 @@ Thumbs.db
 # Java crash logs
 hs_err_pid*
 replay_pid*
+*.exe
+frontend/node_modules/@rollup/rollup-win32-x64-msvc/rollup.win32-x64-msvc.node
