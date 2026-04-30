@@ -1,8 +1,51 @@
+server:
+  port: 8083
+
 spring:
   application:
     name: registration-service
   config:
-    import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
+    import: configserver:${CONFIG_SERVER_URI:http://localhost:8888}
+  cloud:
+    config:
+      fail-fast: true
+      retry:
+        initial-interval: 2000
+        max-attempts: 15
+        max-interval: 5000
+        multiplier: 1.5
+    openfeign:
+      client:
+        config:
+          event-service:
+            connect-timeout: 5000
+            read-timeout: 5000
+          notification-service:
+            connect-timeout: 5000
+            read-timeout: 5000
+  datasource:
+    url: ${REGISTRATION_DB_URL:jdbc:postgresql://localhost:5432/registration_db}
+    username: ${REGISTRATION_DB_USERNAME:postgres}
+    password: ${REGISTRATION_DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+
+security:
+  jwt:
+    secret: ${AUTH_JWT_SECRET:TXlTdXBlclNlY3JldEtleUZvckp3dEF1dGhTZXJ2aWNlMTIzNDU2Nzg5MDEyMzQ1Njc4OTA=}
 
 management:
   endpoints:

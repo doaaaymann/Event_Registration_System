@@ -24,9 +24,10 @@ spring:
 application:
   admin:
     seed:
+      enabled: ${AUTH_ADMIN_SEED_ENABLED:false}
       full-name: ${AUTH_ADMIN_FULL_NAME:System Administrator}
-      email: ${AUTH_ADMIN_EMAIL:admin@event.local}
-      password: ${AUTH_ADMIN_PASSWORD:Admin12345}
+      email: ${AUTH_ADMIN_EMAIL:}
+      password: ${AUTH_ADMIN_PASSWORD:}
   security:
     jwt:
       secret: ${AUTH_JWT_SECRET:TXlTdXBlclNlY3JldEtleUZvckp3dEF1dGhTZXJ2aWNlMTIzNDU2Nzg5MDEyMzQ1Njc4OTA=}

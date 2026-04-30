@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7-labs
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /workspace
 COPY pom.xml pom.xml
@@ -8,7 +9,7 @@ COPY auth-service auth-service
 COPY event-service event-service
 COPY registration-service registration-service
 COPY notification-service notification-service
-RUN mvn -pl notification-service -am clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 mvn -B -ntp -pl notification-service -am clean package -DskipTests
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app

@@ -1,6 +1,7 @@
 package com.event.authservice.controller;
 
 import com.event.authservice.dto.request.LoginRequest;
+import com.event.authservice.dto.request.CreateManagedUserRequest;
 import com.event.authservice.dto.request.RegisterRequest;
 import com.event.authservice.dto.response.AuthResponse;
 import com.event.authservice.dto.response.TokenValidationResponse;
@@ -55,6 +56,21 @@ class AuthControllerTest {
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody()).isEqualTo(response);
         verify(authService).login(request);
+    }
+
+    @Test
+    void createManagedUserReturnsCreatedResponse() {
+        CreateManagedUserRequest request = new CreateManagedUserRequest();
+        AuthUserPrincipal principal = new AuthUserPrincipal(1L, "admin@event.local", List.of("ADMIN"));
+        UserResponse response = new UserResponse(3L, "Omar Organizer", "omar@example.com", "ACTIVE", List.of("ORGANIZER"));
+
+        when(authService.createManagedUser(principal, request)).thenReturn(response);
+
+        var result = authController.createManagedUser(principal, request);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(result.getBody()).isEqualTo(response);
+        verify(authService).createManagedUser(principal, request);
     }
 
     @Test

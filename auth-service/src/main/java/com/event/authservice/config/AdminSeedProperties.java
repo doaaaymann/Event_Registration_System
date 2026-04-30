@@ -5,9 +5,18 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "application.admin.seed")
 public class AdminSeedProperties {
 
+    private boolean enabled;
     private String fullName;
     private String email;
     private String password;
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     public String getFullName() {
         return fullName;

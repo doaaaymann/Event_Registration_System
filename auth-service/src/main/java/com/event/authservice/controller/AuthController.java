@@ -1,6 +1,7 @@
 package com.event.authservice.controller;
 
 import com.event.authservice.dto.request.LoginRequest;
+import com.event.authservice.dto.request.CreateManagedUserRequest;
 import com.event.authservice.dto.request.RegisterRequest;
 import com.event.authservice.dto.response.AuthResponse;
 import com.event.authservice.dto.response.TokenValidationResponse;
@@ -38,6 +39,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/admin/users")
+    public ResponseEntity<UserResponse> createManagedUser(@AuthenticationPrincipal AuthUserPrincipal principal,
+                                                          @Valid @RequestBody CreateManagedUserRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.createManagedUser(principal, request));
     }
 
     @GetMapping("/me")

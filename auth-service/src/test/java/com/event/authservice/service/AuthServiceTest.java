@@ -1,6 +1,7 @@
 package com.event.authservice.service;
 
 import com.event.authservice.dto.request.LoginRequest;
+import com.event.authservice.dto.request.CreateManagedUserRequest;
 import com.event.authservice.dto.request.RegisterRequest;
 import com.event.authservice.dto.response.AuthResponse;
 import com.event.authservice.dto.response.TokenValidationResponse;
@@ -104,8 +105,6 @@ class AuthServiceTest {
         request.setPassword("Secret123");
         request.setRole(RoleName.ORGANIZER);
 
-        when(userRepository.existsByEmailIgnoreCase("organizer@example.com")).thenReturn(false);
-
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("Public registration only allows PARTICIPANT accounts");
@@ -115,12 +114,12 @@ class AuthServiceTest {
     void loginReturnsJwtToken() {
         LoginRequest request = new LoginRequest();
         request.setEmail("admin@event.local");
-        request.setPassword("Admin12345");
+        request.setPassword("EventAdmin123!");
 
         User user = user(1L, "System Administrator", "admin@event.local", "hashed", adminRole);
 
         when(userRepository.findByEmailIgnoreCase("admin@event.local")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("Admin12345", "hashed")).thenReturn(true);
+        when(passwordEncoder.matches("EventAdmin123!", "hashed")).thenReturn(true);
         when(jwtService.generateToken(1L, "admin@event.local", List.of("ADMIN"))).thenReturn("jwt-token");
 
         AuthResponse response = authService.login(request);
@@ -128,6 +127,48 @@ class AuthServiceTest {
         assertThat(response.getAccessToken()).isEqualTo("jwt-token");
         assertThat(response.getUserId()).isEqualTo(1L);
         assertThat(response.getRoles()).containsExactly("ADMIN");
+    }
+
+    @Test
+    void createManagedUserAllowsAdminToCreateOrganizer() {
+        CreateManagedUserRequest request = new CreateManagedUserRequest();
+        request.setFullName("Omar Organizer");
+        request.setEmail("omar@example.com");
+        request.setPassword("Secret123");
+        request.setRole(RoleName.ORGANIZER);
+
+        AuthUserPrincipal principal = new AuthUserPrincipal(1L, "admin@event.local", List.of("ADMIN"));
+        Role organizerRole = role(RoleName.ORGANIZER);
+
+        when(userRepository.existsByEmailIgnoreCase("omar@example.com")).thenReturn(false);
+        when(roleRepository.findByName(RoleName.ORGANIZER)).thenReturn(Optional.of(organizerRole));
+        when(passwordEncoder.encode("Secret123")).thenReturn("encoded-password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            setId(user, 3L);
+            return user;
+        });
+
+        UserResponse response = authService.createManagedUser(principal, request);
+
+        assertThat(response.getId()).isEqualTo(3L);
+        assertThat(response.getEmail()).isEqualTo("omar@example.com");
+        assertThat(response.getRoles()).containsExactly("ORGANIZER");
+    }
+
+    @Test
+    void createManagedUserRejectsNonAdmin() {
+        CreateManagedUserRequest request = new CreateManagedUserRequest();
+        request.setFullName("Omar Organizer");
+        request.setEmail("omar@example.com");
+        request.setPassword("Secret123");
+        request.setRole(RoleName.ORGANIZER);
+
+        AuthUserPrincipal principal = new AuthUserPrincipal(7L, "ali@example.com", List.of("PARTICIPANT"));
+
+        assertThatThrownBy(() -> authService.createManagedUser(principal, request))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Access is denied");
     }
 
     @Test

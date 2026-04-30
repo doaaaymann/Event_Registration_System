@@ -16,3 +16,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+application:
+  internal-api:
+    key: ${INTERNAL_NOTIFICATION_API_KEY:event-system-internal-key}

@@ -178,7 +178,7 @@ The auth service seeds a default admin account.
 Use:
 
 - email: `admin@event.local`
-- password: `Admin12345`
+- password: `EventAdmin123!`
 
 ## 9. Postman Setup
 
@@ -212,7 +212,7 @@ Body:
 ```json
 {
   "email": "admin@event.local",
-  "password": "Admin12345"
+  "password": "EventAdmin123!"
 }
 ```
 
@@ -330,6 +330,31 @@ Postman `Tests` tab:
 const json = pm.response.json();
 pm.environment.set("participantToken", json.accessToken);
 ```
+
+### Request 4B: Create Organizer As Admin
+
+- Method: `POST`
+- URL: `{{baseUrl}}/api/auth/admin/users`
+
+Headers:
+
+- `Authorization: Bearer {{token}}`
+- `Content-Type: application/json`
+
+Body:
+
+```json
+{
+  "fullName": "Omar Organizer",
+  "email": "omar@example.com",
+  "password": "Secret123",
+  "role": "ORGANIZER"
+}
+```
+
+Expected:
+
+- `201 Created`
 
 ### Request 5: Get Current User
 
@@ -463,14 +488,15 @@ Expected:
 2. Register participant
 3. Reject organizer public registration
 4. Login participant
-5. Get current user
-6. Validate token
-7. Get participant by own id
-8. Get participant roles by own id
-9. Try forbidden access
-10. Use admin to access participant data
-11. Test missing token
-12. Test invalid token
+5. Create organizer as admin
+6. Get current user
+7. Validate token
+8. Get participant by own id
+9. Get participant roles by own id
+10. Try forbidden access
+11. Use admin to access participant data
+12. Test missing token
+13. Test invalid token
 
 ## 13. If Something Fails
 
@@ -503,6 +529,7 @@ Person 1 can mark the auth task done when all of these are true:
 - participant cannot access another user
 - admin can access users and roles
 - public organizer registration is rejected
+- admin can create organizer users through `/api/auth/admin/users`
 
 ## 15. Fast Final Checklist
 

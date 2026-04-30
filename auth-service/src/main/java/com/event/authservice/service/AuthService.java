@@ -2,6 +2,7 @@ package com.event.authservice.service;
 
 import com.event.authservice.aop.AuditAction;
 import com.event.authservice.dto.request.LoginRequest;
+import com.event.authservice.dto.request.CreateManagedUserRequest;
 import com.event.authservice.dto.request.RegisterRequest;
 import com.event.authservice.dto.response.AuthResponse;
 import com.event.authservice.dto.response.TokenValidationResponse;
@@ -46,26 +47,10 @@ public class AuthService {
     @Transactional
     @AuditAction("REGISTER_USER")
     public UserResponse register(RegisterRequest request) {
-        String normalizedEmail = request.getEmail().trim().toLowerCase();
-        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-            throw new BadRequestException("Email is already registered");
-        }
-
         if (request.getRole() != RoleName.PARTICIPANT) {
             throw new BadRequestException("Public registration only allows PARTICIPANT accounts");
         }
-
-        Role role = roleRepository.findByName(request.getRole())
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + request.getRole()));
-
-        User user = new User();
-        user.setFullName(request.getFullName().trim());
-        user.setEmail(normalizedEmail);
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setStatus(UserStatus.ACTIVE);
-        user.setRoles(Set.of(role));
-
-        return toUserResponse(userRepository.save(user));
+        return createUser(request.getFullName(), request.getEmail(), request.getPassword(), request.getRole());
     }
 
     @AuditAction("LOGIN_USER")
@@ -80,6 +65,16 @@ public class AuthService {
         List<String> roles = extractRoles(user);
         String token = jwtService.generateToken(user.getId(), user.getEmail(), roles);
         return new AuthResponse(token, "Bearer", user.getId(), user.getEmail(), roles);
+    }
+
+    @Transactional
+    @AuditAction("CREATE_MANAGED_USER")
+    public UserResponse createManagedUser(AuthUserPrincipal principal, CreateManagedUserRequest request) {
+        ensureAdmin(principal);
+        if (request.getRole() == RoleName.ADMIN) {
+            throw new BadRequestException("Use the seeded admin account for ADMIN access");
+        }
+        return createUser(request.getFullName(), request.getEmail(), request.getPassword(), request.getRole());
     }
 
     @Transactional(readOnly = true)
@@ -124,6 +119,32 @@ public class AuthService {
         if (!isAdmin && !isSelf) {
             throw new AccessDeniedException("Access is denied");
         }
+    }
+
+    private void ensureAdmin(AuthUserPrincipal principal) {
+        if (principal == null || principal.getUserId() == null
+                || principal.getRoles() == null || !principal.getRoles().contains("ADMIN")) {
+            throw new AccessDeniedException("Access is denied");
+        }
+    }
+
+    private UserResponse createUser(String fullName, String email, String password, RoleName roleName) {
+        String normalizedEmail = email.trim().toLowerCase();
+        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new BadRequestException("Email is already registered");
+        }
+
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleName));
+
+        User user = new User();
+        user.setFullName(fullName.trim());
+        user.setEmail(normalizedEmail);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setStatus(UserStatus.ACTIVE);
+        user.setRoles(Set.of(role));
+
+        return toUserResponse(userRepository.save(user));
     }
 
     private UserResponse toUserResponse(User user) {
