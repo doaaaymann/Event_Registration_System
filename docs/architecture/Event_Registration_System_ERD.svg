@@ -1,0 +1,190 @@
+<svg width="1800" height="1220" viewBox="0 0 1800 1220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1800" y2="1220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7FAFC"/>
+      <stop offset="1" stop-color="#EEF3F8"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F9FBFD"/>
+    </linearGradient>
+    <linearGradient id="headerBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#163B63"/>
+      <stop offset="1" stop-color="#285A8A"/>
+    </linearGradient>
+    <linearGradient id="headerGold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#87640E"/>
+      <stop offset="1" stop-color="#B48617"/>
+    </linearGradient>
+    <linearGradient id="headerTeal" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#0C6572"/>
+      <stop offset="1" stop-color="#16899A"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#0F172A" flood-opacity="0.12"/>
+    </filter>
+    <style>
+      .title { font: 700 34px "Segoe UI", Arial, sans-serif; fill: #10253E; }
+      .subtitle { font: 400 16px "Segoe UI", Arial, sans-serif; fill: #4B647C; }
+      .section { font: 700 14px "Segoe UI", Arial, sans-serif; letter-spacing: 0.10em; fill: #5B7187; }
+      .entity { font: 700 20px "Segoe UI", Arial, sans-serif; fill: white; }
+      .meta { font: 600 11px "Segoe UI", Arial, sans-serif; letter-spacing: 0.08em; fill: rgba(255,255,255,0.72); }
+      .field { font: 600 14px "Segoe UI", Arial, sans-serif; fill: #15324E; }
+      .type { font: 400 13px "Consolas", "Courier New", monospace; fill: #5C7085; }
+      .small { font: 400 13px "Segoe UI", Arial, sans-serif; fill: #496176; }
+      .legendTitle { font: 700 16px "Segoe UI", Arial, sans-serif; fill: #17324D; }
+      .legendText { font: 400 13px "Segoe UI", Arial, sans-serif; fill: #496176; }
+      .card { fill: url(#panel); stroke: #D8E2EC; stroke-width: 1.2; filter: url(#shadow); }
+      .connector { stroke: #35597B; stroke-width: 3; fill: none; }
+      .logical { stroke: #0E7C86; stroke-width: 3; stroke-dasharray: 10 8; fill: none; }
+      .label { font: 700 12px "Segoe UI", Arial, sans-serif; fill: #17324D; }
+      .badgeText { font: 700 10px "Segoe UI", Arial, sans-serif; fill: white; letter-spacing: 0.08em; }
+      .foot { font: 400 12px "Segoe UI", Arial, sans-serif; fill: #5A6E82; }
+    </style>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#35597B"/>
+    </marker>
+    <marker id="arrowTeal" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#0E7C86"/>
+    </marker>
+  </defs>
+
+  <rect width="1800" height="1220" fill="url(#bg)"/>
+
+  <rect x="70" y="52" width="1660" height="112" rx="26" fill="#FFFFFF" stroke="#D8E2EC" stroke-width="1.4" filter="url(#shadow)"/>
+  <text x="110" y="104" class="title">Entity Relationship Diagram (ERD)</text>
+  <text x="110" y="134" class="subtitle">Event Registration System • Based on implemented entities, Flyway migrations, and logical cross-service relationships</text>
+
+  <rect x="1400" y="78" width="290" height="58" rx="18" fill="#163B63"/>
+  <text x="1545" y="104" text-anchor="middle" class="badgeText">MICROSERVICES DATABASE MODEL</text>
+  <text x="1545" y="124" text-anchor="middle" class="subtitle" style="fill:#D9E6F2;">Physical + logical service links</text>
+
+  <!-- AUTH PANEL -->
+  <text x="90" y="220" class="section">AUTH SERVICE DATABASE</text>
+
+  <g transform="translate(90 250)">
+    <rect class="card" width="430" height="300" rx="24"/>
+    <rect width="430" height="72" rx="24" fill="url(#headerBlue)"/>
+    <text x="28" y="30" class="meta">ENTITY</text>
+    <text x="28" y="54" class="entity">USERS</text>
+    <text x="26" y="106" class="field">PK  id</text><text x="250" y="106" class="type">BIGINT</text>
+    <text x="26" y="136" class="field">full_name</text><text x="250" y="136" class="type">VARCHAR(255)</text>
+    <text x="26" y="166" class="field">UK  email</text><text x="250" y="166" class="type">VARCHAR(255)</text>
+    <text x="26" y="196" class="field">password_hash</text><text x="250" y="196" class="type">VARCHAR(255)</text>
+    <text x="26" y="226" class="field">interests</text><text x="250" y="226" class="type">VARCHAR(1000)</text>
+    <text x="26" y="256" class="field">status</text><text x="250" y="256" class="type">VARCHAR(50)</text>
+    <text x="26" y="286" class="field">created_at</text><text x="250" y="286" class="type">TIMESTAMP</text>
+  </g>
+
+  <g transform="translate(90 590)">
+    <rect class="card" width="200" height="150" rx="24"/>
+    <rect width="200" height="62" rx="24" fill="url(#headerGold)"/>
+    <text x="24" y="28" class="meta">ENTITY</text>
+    <text x="24" y="48" class="entity">ROLES</text>
+    <text x="24" y="98" class="field">PK  id</text><text x="112" y="98" class="type">BIGINT</text>
+    <text x="24" y="126" class="field">UK  name</text><text x="112" y="126" class="type">VARCHAR(50)</text>
+  </g>
+
+  <g transform="translate(320 590)">
+    <rect class="card" width="200" height="178" rx="24"/>
+    <rect width="200" height="62" rx="24" fill="url(#headerGold)"/>
+    <text x="24" y="28" class="meta">JOIN TABLE</text>
+    <text x="24" y="48" class="entity">USER_ROLES</text>
+    <text x="24" y="100" class="field">PK, FK  user_id</text><text x="130" y="100" class="type">BIGINT</text>
+    <text x="24" y="130" class="field">PK, FK  role_id</text><text x="130" y="130" class="type">BIGINT</text>
+  </g>
+
+  <!-- EVENT PANEL -->
+  <text x="610" y="220" class="section">EVENT SERVICE DATABASE</text>
+  <g transform="translate(610 250)">
+    <rect class="card" width="530" height="392" rx="24"/>
+    <rect width="530" height="72" rx="24" fill="url(#headerBlue)"/>
+    <text x="28" y="30" class="meta">ENTITY</text>
+    <text x="28" y="54" class="entity">EVENTS</text>
+    <text x="26" y="104" class="field">PK  id</text><text x="326" y="104" class="type">BIGINT</text>
+    <text x="26" y="132" class="field">title</text><text x="326" y="132" class="type">VARCHAR(255)</text>
+    <text x="26" y="160" class="field">description</text><text x="326" y="160" class="type">TEXT</text>
+    <text x="26" y="188" class="field">location</text><text x="326" y="188" class="type">VARCHAR(255)</text>
+    <text x="26" y="216" class="field">start_time</text><text x="326" y="216" class="type">TIMESTAMP</text>
+    <text x="26" y="244" class="field">end_time</text><text x="326" y="244" class="type">TIMESTAMP</text>
+    <text x="26" y="272" class="field">max_seats</text><text x="326" y="272" class="type">INTEGER</text>
+    <text x="26" y="300" class="field">status</text><text x="326" y="300" class="type">VARCHAR(50)</text>
+    <text x="26" y="328" class="field">FK* organizer_id</text><text x="326" y="328" class="type">BIGINT</text>
+    <text x="26" y="356" class="field">organizer_ids</text><text x="326" y="356" class="type">TEXT (CSV)</text>
+    <text x="26" y="384" class="field">created_at</text><text x="326" y="384" class="type">TIMESTAMP</text>
+    <text x="26" y="412" class="field">updated_at</text><text x="326" y="412" class="type">TIMESTAMP</text>
+  </g>
+
+  <!-- REGISTRATION PANEL -->
+  <text x="610" y="700" class="section">REGISTRATION SERVICE DATABASE</text>
+  <g transform="translate(610 730)">
+    <rect class="card" width="530" height="252" rx="24"/>
+    <rect width="530" height="72" rx="24" fill="url(#headerTeal)"/>
+    <text x="28" y="30" class="meta">ENTITY</text>
+    <text x="28" y="54" class="entity">REGISTRATIONS</text>
+    <text x="26" y="108" class="field">PK  id</text><text x="326" y="108" class="type">BIGINT</text>
+    <text x="26" y="138" class="field">FK* event_id</text><text x="326" y="138" class="type">BIGINT</text>
+    <text x="26" y="168" class="field">FK* participant_id</text><text x="326" y="168" class="type">BIGINT</text>
+    <text x="26" y="198" class="field">status</text><text x="326" y="198" class="type">VARCHAR(50)</text>
+    <text x="26" y="228" class="field">registered_at</text><text x="326" y="228" class="type">TIMESTAMP</text>
+    <text x="26" y="258" class="field">cancelled_at</text><text x="326" y="258" class="type">TIMESTAMP NULL</text>
+    <text x="26" y="292" class="small">Unique business rule: (event_id, participant_id) active pair</text>
+  </g>
+
+  <!-- NOTIFICATION PANEL -->
+  <text x="1240" y="220" class="section">NOTIFICATION SERVICE DATABASE</text>
+  <g transform="translate(1240 250)">
+    <rect class="card" width="470" height="286" rx="24"/>
+    <rect width="470" height="72" rx="24" fill="url(#headerTeal)"/>
+    <text x="28" y="30" class="meta">ENTITY</text>
+    <text x="28" y="54" class="entity">NOTIFICATIONS</text>
+    <text x="26" y="108" class="field">PK  id</text><text x="290" y="108" class="type">BIGINT</text>
+    <text x="26" y="138" class="field">FK* user_id</text><text x="290" y="138" class="type">BIGINT</text>
+    <text x="26" y="168" class="field">type</text><text x="290" y="168" class="type">VARCHAR(100)</text>
+    <text x="26" y="198" class="field">title</text><text x="290" y="198" class="type">VARCHAR(255)</text>
+    <text x="26" y="228" class="field">message</text><text x="290" y="228" class="type">TEXT</text>
+    <text x="26" y="258" class="field">read</text><text x="290" y="258" class="type">BOOLEAN</text>
+    <text x="26" y="288" class="field">created_at</text><text x="290" y="288" class="type">TIMESTAMP</text>
+  </g>
+
+  <!-- LEGEND -->
+  <g transform="translate(1240 630)">
+    <rect class="card" width="470" height="280" rx="24"/>
+    <text x="28" y="42" class="legendTitle">Legend & Modeling Notes</text>
+    <line x1="30" y1="72" x2="120" y2="72" class="connector" marker-end="url(#arrowBlue)"/>
+    <text x="136" y="77" class="legendText">Physical relationship inside one schema / join structure</text>
+    <line x1="30" y1="112" x2="120" y2="112" class="logical" marker-end="url(#arrowTeal)"/>
+    <text x="136" y="117" class="legendText">Logical cross-service relationship, enforced in application logic</text>
+    <text x="30" y="162" class="legendTitle">Cardinality Summary</text>
+    <text x="30" y="188" class="legendText">• One USER can have many ROLES through USER_ROLES</text>
+    <text x="30" y="212" class="legendText">• One ORGANIZER USER can organize many EVENTS</text>
+    <text x="30" y="236" class="legendText">• One EVENT can contain many REGISTRATIONS</text>
+    <text x="30" y="260" class="legendText">• One PARTICIPANT USER can create many REGISTRATIONS</text>
+    <text x="30" y="284" class="legendText">• One USER can receive many NOTIFICATIONS</text>
+    <text x="30" y="324" class="legendTitle">Implementation Note</text>
+    <text x="30" y="348" class="legendText">`organizer_ids` is stored as text in the event schema to support</text>
+    <text x="30" y="370" class="legendText">multi-organizer ownership in the current implementation.</text>
+  </g>
+
+  <!-- CONNECTORS -->
+  <path d="M290 552 C290 570, 190 570, 190 590" class="connector" marker-end="url(#arrowBlue)"/>
+  <path d="M380 552 C380 570, 420 570, 420 590" class="connector" marker-end="url(#arrowBlue)"/>
+  <path d="M290 664 L320 664" class="connector" marker-end="url(#arrowBlue)"/>
+
+  <path d="M520 392 C570 392, 575 392, 610 392" class="logical" marker-end="url(#arrowTeal)"/>
+  <text x="548" y="372" class="label">1 USER organizes many EVENTS</text>
+
+  <path d="M875 642 L875 730" class="connector" marker-end="url(#arrowBlue)"/>
+  <text x="900" y="690" class="label">1 EVENT has many REGISTRATIONS</text>
+
+  <path d="M520 382 C600 382, 560 856, 610 856" class="logical" marker-end="url(#arrowTeal)"/>
+  <text x="530" y="820" class="label">1 USER participates in many REGISTRATIONS</text>
+
+  <path d="M520 410 C920 410, 980 390, 1240 390" class="logical" marker-end="url(#arrowTeal)"/>
+  <text x="955" y="368" class="label">1 USER receives many NOTIFICATIONS</text>
+
+  <rect x="78" y="1080" width="1644" height="84" rx="22" fill="#FFFFFF" stroke="#D8E2EC" stroke-width="1.2"/>
+  <text x="108" y="1114" class="legendTitle">Professional ERD Interpretation</text>
+  <text x="108" y="1140" class="foot">This project uses physically separated databases per microservice. Therefore, some arrows represent application-level foreign-key semantics rather than direct database-level constraints.</text>
+  <text x="108" y="1160" class="foot">That is the most accurate representation of the implemented architecture: local schema integrity where possible, and cross-service consistency enforced through service logic and secured APIs.</text>
+</svg>

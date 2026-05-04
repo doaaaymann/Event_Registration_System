@@ -1,165 +1,211 @@
 # Event Registration System
 
-## Description
+The Event Registration System is a microservices-based Software Engineering project for managing events, participant registrations, organizer assignments, and in-system notifications. It provides a web frontend for users and a Spring Boot backend split into focused services for authentication, events, registrations, and notifications.
 
-The Event Registration System is a Software Engineering-2 project built with Spring Boot using a microservices architecture. The system allows users to manage and participate in events such as seminars, workshops, and conferences through REST APIs.
+## What This Project Does
 
-The platform is designed to support different user roles, secure API access, and provide a scalable structure using Spring Cloud, Docker, and a database-backed backend.
+The platform is designed for academic events, workshops, seminars, conferences, and similar activities where users need to:
 
-## Project Overview
+- create and manage events
+- browse upcoming events
+- register and cancel participation
+- view confirmed tickets
+- assign organizers to events
+- receive notifications for important event changes
 
-This system helps organizers create and manage events while allowing participants to browse and register for available events. It is intended to demonstrate core software engineering concepts including modular design, role-based authorization, Aspect-Oriented Programming, microservices, and software documentation.
+The system supports three main roles:
 
-### Target users
+- `ADMIN`
+- `ORGANIZER`
+- `PARTICIPANT`
 
-- Event Organizer
-- Participant
-- Admin
+## Main Features
 
-## Core Features
+- Secure user registration and login
+- JWT-based authentication and role-based authorization
+- Admin-managed user creation for organizers and participants
+- Event creation, update, cancellation, and rescheduling
+- Multi-organizer assignment support
+- Event browsing with schedule, location, status, and seat availability
+- Participant registration with duplicate-registration protection
+- Registration cancellation and ticket-style confirmed-registration view
+- Organizer dashboard for assigned events
+- In-system notifications with read/unread state
+- Docker-friendly microservices setup
 
-- User registration and authentication
-- Role-based authorization for API access
-- Create events with limited seats
-- View upcoming events
-- Register for an event
-- Track registered participants
-- Cancel events
-- Reschedule events
-- Notification-ready architecture for event and registration updates
+## Architecture Overview
 
-## Project Requirements
+This project uses a microservices architecture with a React frontend and Spring Boot backend services.
 
-This project is developed according to the Software Engineering-2 guidelines:
+### Services
 
-- Spring Boot is used as the backend framework
-- REST APIs are used for system functionality
-- The application is organized into at least four functional modules
-- Different user roles are supported with controlled API authorization
-- Aspect-Oriented Programming (AOP) is included
-- The application is Dockerized
-- Microservices and Spring Cloud are used
-- A database is included
-- User registration and authentication are implemented
-- A complete Software Requirements Specification (SRS) document is required
-- Essential diagrams are required, including:
-- Use Case Diagram
-- Class Diagram
-- Sequence Diagrams
-- Activity Diagrams
-
-## General Project Structure
-
-The project follows a microservices-based structure. Each service has a clear responsibility and communicates through APIs.
-
-### Main parts of the system
-
-- `config-server`
-  Provides centralized configuration for all microservices.
-
-- `eureka-server`
-  Handles service discovery between microservices.
-
+- `frontend`
+  - React/Vite client application
 - `api-gateway`
-  Serves as the single entry point for external client requests and routes them to the correct services.
-
+  - Single entry point for frontend requests
 - `auth-service`
-  Manages user registration, login, authentication, JWT handling, and role-based access control.
-
+  - User accounts, login, JWT validation, roles, profile access
 - `event-service`
-  Manages event creation, event updates, seat limits, cancellation, and rescheduling.
-
+  - Event lifecycle management and organizer assignments
 - `registration-service`
-  Handles participant registration, cancellation of registration, and participant tracking.
-
+  - Participant event registrations and cancellation flow
 - `notification-service`
-  Can be used for sending or storing notifications related to registrations, cancellations, or schedule changes.
+  - User notifications and internal notification triggers
+- `config-server`
+  - Centralized configuration
+- `eureka-server`
+  - Service discovery
 
-- `database`
-  Stores application data for users, events, registrations, and notifications.
-
-## Suggested Functional Modules
-
-The system can be viewed as four main business modules:
-
-1. Authentication and User Management
-2. Event Management
-3. Registration Management
-4. Notification Management
-
-## Roles in the System
+## Role Responsibilities
 
 ### Admin
 
-- Manage overall system access
-- Monitor users and permissions
-- Support administrative control over the platform
-
-### Event Organizer
-
 - Create events
-- Update event details
-- Cancel events
-- Reschedule events
-- View participant lists
+- Edit event details
+- Cancel or reschedule events
+- Create managed organizer or participant accounts
+- Assign organizers to events
+- Supervise overall platform usage
+
+### Organizer
+
+- View only assigned events
+- Review event details
+- Monitor registered participant counts
+- Receive organizer-specific notifications
 
 ### Participant
 
-- Register an account
-- Log in to the system
-- View available and upcoming events
-- Register for an event
+- Register a public account
+- Log in and browse events
+- Register for eligible events
 - Cancel a registration
+- View confirmed tickets
+- Read notifications
 
 ## Technology Stack
 
+### Frontend
+
+- React
+- Vite
+- JavaScript
+- Axios
+- Tailwind-style utility CSS
+
+### Backend
+
 - Java
 - Spring Boot
-- Spring Web
 - Spring Security
 - Spring Data JPA
-- Spring Cloud
-- Eureka Server
 - Spring Cloud Gateway
 - Spring Cloud Config
-- PostgreSQL or another relational database
+- Eureka Server
+- OpenFeign / service clients
+
+### Infrastructure
+
+- PostgreSQL
 - Docker
+- Docker Compose
 - Maven
-- AOP with Spring
 
-## API Design
+## Project Structure
 
-The system is API-based and exposes REST endpoints for the main operations. These APIs are expected to cover:
+```text
+Event_Registration_System-/
+├── api-gateway/
+├── auth-service/
+├── config-server/
+├── docker/
+├── docs/
+├── eureka-server/
+├── event-service/
+├── frontend/
+├── notification-service/
+├── registration-service/
+├── tasks/
+└── pom.xml
+```
 
-- authentication
-- user management
-- event management
-- event registration
-- participant tracking
-- notification handling
+## Documentation
 
-## Security
+The cleaned documentation folder is organized as follows:
 
-The system includes:
+- [`docs/README.md`](./docs/README.md)
+  - documentation index
+- [`docs/architecture/`](./docs/architecture)
+  - architecture artifacts such as the ERD
+- [`docs/srs/`](./docs/srs)
+  - SRS-related deliverables and generation assets
 
-- user registration
-- user login
-- authentication logic
-- authorization based on roles
-- protected APIs depending on user permissions
+### ERD
 
-JWT can be used to secure communication between clients and backend services.
+- [`docs/architecture/Event_Registration_System_ERD.svg`](./docs/architecture/Event_Registration_System_ERD.svg)
+  - professional vector ERD image
+- [`docs/architecture/Event_Registration_System_ERD.md`](./docs/architecture/Event_Registration_System_ERD.md)
+  - ERD notes and Mermaid source
 
-## Dockerization
+## Database Model
 
-The application is designed to be Dockerized for easy setup and deployment. Each microservice can run in its own container, and supporting services such as the database can also be managed with Docker Compose.
+The system stores data across separate service databases.
 
-## Database
+### Auth domain
 
-A database is required to persist system data such as:
+- `users`
+- `roles`
+- `user_roles`
 
-- users
-- roles
-- events
-- registrations
-- notifications
+### Event domain
+
+- `events`
+
+### Registration domain
+
+- `registrations`
+
+### Notification domain
+
+- `notifications`
+
+Because the system is microservices-based, some relationships are logical cross-service relationships enforced in application logic instead of direct foreign keys across one shared database.
+
+## Core Business Rules
+
+- Public self-registration is limited to `PARTICIPANT` accounts
+- Only admins can create managed organizer or participant accounts
+- Every event must have at least one organizer
+- Only `SCHEDULED` or `RESCHEDULED` events can accept registrations
+- A participant cannot hold duplicate active registrations for the same event
+- Cancelled events cannot be edited as active events
+- Notifications are only readable by their owner or an admin
+
+## Running the Project
+
+The project is designed to run as multiple services. Typical setup includes:
+
+1. Start the supporting infrastructure and databases
+2. Start `config-server` and `eureka-server`
+3. Start backend domain services
+4. Start `api-gateway`
+5. Start the frontend
+
+The exact startup flow may vary depending on whether you use Docker Compose or run services individually.
+
+## API Areas
+
+The main API areas exposed through the gateway are:
+
+- `/api/auth`
+- `/api/events`
+- `/api/registrations`
+- `/api/notifications`
+
+## Testing and Work Reports
+
+The `tasks/` folder contains working notes, testing flows, and service-specific reports created during development. These files are helpful for internal project work but are separate from the cleaned long-term documentation under `docs/`.
+
+## Current State
+
+This repository contains the implemented backend and frontend for the Event Registration System, plus supporting architecture documentation. It is suitable as a course project, a portfolio-quality microservices example, and a base for future additions such as email delivery, analytics, payment-based tickets, or check-in workflows.
