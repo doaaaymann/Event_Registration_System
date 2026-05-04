@@ -3,10 +3,12 @@ package com.event.eventservice.dto.request;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class CreateEventRequest {
 
@@ -33,7 +35,9 @@ public class CreateEventRequest {
     @Min(1)
     private Integer maxSeats;
 
-    @NotNull
+    @NotEmpty
+    private List<Long> organizerIds;
+
     private Long organizerId;
 
     public String getTitle() {
@@ -85,10 +89,21 @@ public class CreateEventRequest {
     }
 
     public Long getOrganizerId() {
-        return organizerId;
+        return getOrganizerIds().isEmpty() ? null : getOrganizerIds().get(0);
     }
 
     public void setOrganizerId(Long organizerId) {
         this.organizerId = organizerId;
+    }
+
+    public List<Long> getOrganizerIds() {
+        if (organizerIds != null && !organizerIds.isEmpty()) {
+            return organizerIds;
+        }
+        return organizerId == null ? List.of() : List.of(organizerId);
+    }
+
+    public void setOrganizerIds(List<Long> organizerIds) {
+        this.organizerIds = organizerIds;
     }
 }

@@ -1,5 +1,6 @@
 package com.event.eventservice.controller;
 
+import com.event.eventservice.dto.request.AssignOrganizerRequest;
 import com.event.eventservice.dto.request.CreateEventRequest;
 import com.event.eventservice.dto.request.RescheduleEventRequest;
 import com.event.eventservice.dto.request.UpdateEventRequest;
@@ -75,6 +76,13 @@ public class EventController {
                                                          @PathVariable Long eventId,
                                                          @Valid @RequestBody RescheduleEventRequest request) {
         return ResponseEntity.ok(eventService.rescheduleEvent(principal, eventId, request));
+    }
+
+    @PatchMapping("/{eventId}/organizer")
+    public ResponseEntity<EventResponse> assignOrganizer(@AuthenticationPrincipal AuthUserPrincipal principal,
+                                                         @PathVariable Long eventId,
+                                                         @Valid @RequestBody AssignOrganizerRequest request) {
+        return ResponseEntity.ok(eventService.assignOrganizer(principal, eventId, request));
     }
 
     @GetMapping("/{eventId}/availability")

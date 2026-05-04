@@ -1,5 +1,7 @@
 package com.event.registrationservice.dto.client;
 
+import java.util.List;
+
 public class EventDetailsResponse {
 
     private Long id;
@@ -13,6 +15,7 @@ public class EventDetailsResponse {
     private Integer availableSeats;
     private String status;
     private Long organizerId;
+    private List<Long> organizerIds;
 
     public Long getId() {
         return id;
@@ -100,5 +103,16 @@ public class EventDetailsResponse {
 
     public void setOrganizerId(Long organizerId) {
         this.organizerId = organizerId;
+    }
+
+    public List<Long> getOrganizerIds() {
+        if (organizerIds != null && !organizerIds.isEmpty()) {
+            return organizerIds;
+        }
+        return organizerId == null ? List.of() : List.of(organizerId);
+    }
+
+    public void setOrganizerIds(List<Long> organizerIds) {
+        this.organizerIds = organizerIds;
     }
 }

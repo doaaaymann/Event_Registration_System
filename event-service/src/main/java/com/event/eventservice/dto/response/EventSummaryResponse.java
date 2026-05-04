@@ -2,6 +2,8 @@ package com.event.eventservice.dto.response;
 
 import com.event.eventservice.entity.EventStatus;
 
+import java.util.List;
+
 public class EventSummaryResponse {
 
     private final Long id;
@@ -15,6 +17,7 @@ public class EventSummaryResponse {
     private final Integer availableSeats;
     private final EventStatus status;
     private final Long organizerId;
+    private final List<Long> organizerIds;
 
     public EventSummaryResponse(Long id,
                                 String title,
@@ -26,7 +29,8 @@ public class EventSummaryResponse {
                                 Integer registeredCount,
                                 Integer availableSeats,
                                 EventStatus status,
-                                Long organizerId) {
+                                Long organizerId,
+                                List<Long> organizerIds) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -38,6 +42,7 @@ public class EventSummaryResponse {
         this.availableSeats = availableSeats;
         this.status = status;
         this.organizerId = organizerId;
+        this.organizerIds = organizerIds;
     }
 
     public Long getId() {
@@ -82,5 +87,9 @@ public class EventSummaryResponse {
 
     public Long getOrganizerId() {
         return organizerId;
+    }
+
+    public List<Long> getOrganizerIds() {
+        return organizerIds;
     }
 }

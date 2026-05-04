@@ -1,32 +1,74 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AppShell from './components/AppShell';
 import ProtectedRoute from './components/ProtectedRoute';
-import DashboardPage from './pages/DashboardPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AuthPage from './pages/AuthPage';
 import EventDetailsPage from './pages/EventDetailsPage';
+import FindEventsPage from './pages/FindEventsPage';
+import HelpCenterPage from './pages/HelpCenterPage';
 import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
+import MyTicketsPage from './pages/MyTicketsPage';
+import NotificationsPage from './pages/NotificationsPage';
+import OrganizerPage from './pages/OrganizerPage';
+import ProfilePage from './pages/ProfilePage';
+import RoleRedirectPage from './pages/RoleRedirectPage';
 
 export default function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
         <Route index element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/login" element={<Navigate to="/auth" replace />} />
+        <Route path="/register" element={<Navigate to="/auth" replace />} />
+        <Route path="/events" element={<FindEventsPage />} />
+        <Route path="/events/:eventId" element={<EventDetailsPage />} />
+        <Route path="/help" element={<HelpCenterPage />} />
         <Route
-          path="/dashboard"
+          path="/profile"
           element={
-            <ProtectedRoute>
-              <DashboardPage />
+            <ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZER', 'PARTICIPANT']}>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/events/:eventId"
+          path="/notifications"
           element={
-            <ProtectedRoute>
-              <EventDetailsPage />
+            <ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZER', 'PARTICIPANT']}>
+              <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tickets"
+          element={
+            <ProtectedRoute allowedRoles={['PARTICIPANT']}>
+              <MyTicketsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/organizer"
+          element={
+            <ProtectedRoute allowedRoles={['ORGANIZER']}>
+              <OrganizerPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZER', 'PARTICIPANT']}>
+              <RoleRedirectPage />
             </ProtectedRoute>
           }
         />

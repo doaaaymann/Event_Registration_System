@@ -12,6 +12,9 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "events")
@@ -45,6 +48,9 @@ public class Event {
 
     @Column(name = "organizer_id", nullable = false)
     private Long organizerId;
+
+    @Column(name = "organizer_ids", nullable = false, columnDefinition = "TEXT")
+    private String organizerIdsData;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -134,6 +140,39 @@ public class Event {
 
     public void setOrganizerId(Long organizerId) {
         this.organizerId = organizerId;
+        this.organizerIdsData = organizerId == null ? "" : String.valueOf(organizerId);
+    }
+
+    public List<Long> getOrganizerIds() {
+        if (organizerIdsData == null || organizerIdsData.isBlank()) {
+            return organizerId == null ? List.of() : List.of(organizerId);
+        }
+        return Arrays.stream(organizerIdsData.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .map(Long::valueOf)
+                .distinct()
+                .toList();
+    }
+
+    public void setOrganizerIds(List<Long> organizerIds) {
+        List<Long> normalized = organizerIds == null
+                ? List.of()
+                : organizerIds.stream()
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .toList();
+
+        if (normalized.isEmpty()) {
+            this.organizerId = null;
+            this.organizerIdsData = "";
+            return;
+        }
+
+        this.organizerId = normalized.get(0);
+        this.organizerIdsData = normalized.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
     }
 
     public LocalDateTime getCreatedAt() {

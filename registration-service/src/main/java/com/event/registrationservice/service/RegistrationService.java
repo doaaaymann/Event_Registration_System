@@ -151,22 +151,21 @@ public class RegistrationService {
         if (authenticatedUser.hasRole("ADMIN")) {
             return;
         }
-        if (authenticatedUser.hasRole("ORGANIZER") && event.getOrganizerId() != null
-                && event.getOrganizerId().equals(authenticatedUser.getUserId())) {
+        if (authenticatedUser.hasRole("ORGANIZER") && event.getOrganizerIds().contains(authenticatedUser.getUserId())) {
             return;
         }
         throw new ForbiddenOperationException("Only the event organizer or ADMIN can view event participants");
     }
 
     private void validateEventStatus(EventDetailsResponse event) {
-        if (!"SCHEDULED".equalsIgnoreCase(event.getStatus())) {
-            throw new BadRequestException("Only SCHEDULED events can accept registrations");
+        if (!isRegistrableStatus(event.getStatus())) {
+            throw new BadRequestException("Only SCHEDULED or RESCHEDULED events can accept registrations");
         }
     }
 
     private void validateAvailability(EventAvailabilityResponse availability) {
-        if (!"SCHEDULED".equalsIgnoreCase(availability.getStatus())) {
-            throw new BadRequestException("Only SCHEDULED events can accept registrations");
+        if (!isRegistrableStatus(availability.getStatus())) {
+            throw new BadRequestException("Only SCHEDULED or RESCHEDULED events can accept registrations");
         }
         if (Boolean.FALSE.equals(availability.getRegistrationOpen())) {
             throw new BadRequestException("Registration is closed for this event");
@@ -174,6 +173,10 @@ public class RegistrationService {
         if (availability.getAvailableSeats() == null || availability.getAvailableSeats() <= 0) {
             throw new BadRequestException("No seats available for this event");
         }
+    }
+
+    private boolean isRegistrableStatus(String status) {
+        return "SCHEDULED".equalsIgnoreCase(status) || "RESCHEDULED".equalsIgnoreCase(status);
     }
 
     private EventDetailsResponse fetchEvent(Long eventId) {

@@ -71,7 +71,7 @@ class EventServiceTest {
         request.setStartTime(LocalDateTime.of(2026, 5, 1, 10, 0));
         request.setEndTime(LocalDateTime.of(2026, 5, 1, 13, 0));
         request.setMaxSeats(100);
-        request.setOrganizerId(2L);
+        request.setOrganizerIds(List.of(2L));
 
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> {
             Event event = invocation.getArgument(0);
@@ -87,6 +87,7 @@ class EventServiceTest {
         assertThat(savedEvent.getTitle()).isEqualTo("Spring Boot Workshop");
         assertThat(savedEvent.getStatus()).isEqualTo(EventStatus.SCHEDULED);
         assertThat(savedEvent.getOrganizerId()).isEqualTo(2L);
+        assertThat(savedEvent.getOrganizerIds()).containsExactly(2L);
 
         assertThat(response.getId()).isEqualTo(10L);
         assertThat(response.getStatus()).isEqualTo(EventStatus.SCHEDULED);
@@ -101,7 +102,7 @@ class EventServiceTest {
         request.setStartTime(LocalDateTime.of(2026, 5, 1, 10, 0));
         request.setEndTime(LocalDateTime.of(2026, 5, 1, 13, 0));
         request.setMaxSeats(100);
-        request.setOrganizerId(99L);
+        request.setOrganizerIds(List.of(99L));
 
         assertThatThrownBy(() -> eventService.createEvent(organizerPrincipal, request))
                 .isInstanceOf(AccessDeniedException.class)
@@ -116,7 +117,7 @@ class EventServiceTest {
         request.setStartTime(LocalDateTime.of(2026, 5, 1, 10, 0));
         request.setEndTime(LocalDateTime.of(2026, 5, 1, 13, 0));
         request.setMaxSeats(100);
-        request.setOrganizerId(5L);
+        request.setOrganizerIds(List.of(5L, 6L));
 
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> {
             Event event = invocation.getArgument(0);
@@ -131,7 +132,7 @@ class EventServiceTest {
 
     @Test
     void getEventReturnsDetails() {
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event(10L, 2L, EventStatus.SCHEDULED)));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event(10L, List.of(2L, 6L), EventStatus.SCHEDULED)));
         when(registrationServiceClient.getRegisteredCount(10L)).thenReturn(35);
 
         EventResponse response = eventService.getEvent(10L);
@@ -140,6 +141,7 @@ class EventServiceTest {
         assertThat(response.getTitle()).isEqualTo("Spring Boot Workshop");
         assertThat(response.getRegisteredCount()).isEqualTo(35);
         assertThat(response.getAvailableSeats()).isEqualTo(65);
+        assertThat(response.getOrganizerIds()).containsExactly(2L, 6L);
     }
 
     @Test
@@ -152,7 +154,7 @@ class EventServiceTest {
         request.setEndTime(LocalDateTime.of(2026, 5, 2, 13, 0));
         request.setMaxSeats(120);
 
-        Event event = event(10L, 2L, EventStatus.SCHEDULED);
+        Event event = event(10L, List.of(2L), EventStatus.SCHEDULED);
         when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(registrationServiceClient.getRegisteredCount(10L)).thenReturn(0);
@@ -174,7 +176,7 @@ class EventServiceTest {
         request.setEndTime(LocalDateTime.of(2026, 5, 2, 13, 0));
         request.setMaxSeats(120);
 
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event(10L, 2L, EventStatus.CANCELLED)));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event(10L, List.of(2L), EventStatus.CANCELLED)));
 
         assertThatThrownBy(() -> eventService.updateEvent(organizerPrincipal, 10L, request))
                 .isInstanceOf(BadRequestException.class)
@@ -183,7 +185,7 @@ class EventServiceTest {
 
     @Test
     void cancelEventSetsStatusToCancelled() {
-        Event event = event(10L, 2L, EventStatus.SCHEDULED);
+        Event event = event(10L, List.of(2L), EventStatus.SCHEDULED);
         when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(registrationServiceClient.getRegisteredCount(10L)).thenReturn(0);
@@ -197,7 +199,7 @@ class EventServiceTest {
 
         assertThat(response.getStatus()).isEqualTo(EventStatus.CANCELLED);
         verify(notificationServiceClient).sendEventCancelled(argThat(request ->
-                request.getUserIds().equals(List.of(7L, 8L))
+                request.getUserIds().equals(List.of(2L, 7L, 8L))
                         && "EVENT_CANCELLED".equals(request.getType())
                         && "Event Cancelled".equals(request.getTitle())
         ));
@@ -205,7 +207,7 @@ class EventServiceTest {
 
     @Test
     void cancelEventRejectsAlreadyCancelledEvent() {
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event(10L, 2L, EventStatus.CANCELLED)));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event(10L, List.of(2L), EventStatus.CANCELLED)));
 
         assertThatThrownBy(() -> eventService.cancelEvent(organizerPrincipal, 10L))
                 .isInstanceOf(BadRequestException.class)
@@ -218,7 +220,7 @@ class EventServiceTest {
         request.setStartTime(LocalDateTime.of(2026, 5, 3, 10, 0));
         request.setEndTime(LocalDateTime.of(2026, 5, 3, 13, 0));
 
-        Event event = event(10L, 2L, EventStatus.SCHEDULED);
+        Event event = event(10L, List.of(2L), EventStatus.SCHEDULED);
         when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(registrationServiceClient.getRegisteredCount(10L)).thenReturn(12);
@@ -232,7 +234,7 @@ class EventServiceTest {
         assertThat(response.getStatus()).isEqualTo(EventStatus.RESCHEDULED);
         assertThat(response.getStartTime()).isEqualTo("2026-05-03T10:00");
         verify(notificationServiceClient).sendEventRescheduled(argThat(requestBody ->
-                requestBody.getUserIds().equals(List.of(7L, 9L))
+                requestBody.getUserIds().equals(List.of(2L, 7L, 9L))
                         && "EVENT_RESCHEDULED".equals(requestBody.getType())
                         && "Event Rescheduled".equals(requestBody.getTitle())
         ));
@@ -240,7 +242,7 @@ class EventServiceTest {
 
     @Test
     void getAvailabilityReflectsEventState() {
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event(10L, 2L, EventStatus.SCHEDULED)));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event(10L, List.of(2L), EventStatus.SCHEDULED)));
         when(registrationServiceClient.getRegisteredCount(10L)).thenReturn(40);
 
         EventAvailabilityResponse response = eventService.getAvailability(10L);
@@ -261,8 +263,8 @@ class EventServiceTest {
     @Test
     void getAllEventsUsesBatchRegistrationCounts() {
         when(eventRepository.findAllByOrderByStartTimeAsc()).thenReturn(List.of(
-                event(10L, 2L, EventStatus.SCHEDULED),
-                event(11L, 2L, EventStatus.SCHEDULED)
+                event(10L, List.of(2L), EventStatus.SCHEDULED),
+                event(11L, List.of(2L, 15L), EventStatus.SCHEDULED)
         ));
         when(registrationServiceClient.getRegisteredCounts(List.of(10L, 11L)))
                 .thenReturn(Map.of(10L, 35, 11L, 10));
@@ -276,7 +278,7 @@ class EventServiceTest {
 
     @Test
     void getAvailabilityFailsClosedWhenRegistrationCountIsUnavailable() {
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event(10L, 2L, EventStatus.SCHEDULED)));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event(10L, List.of(2L), EventStatus.SCHEDULED)));
         when(registrationServiceClient.getRegisteredCount(10L))
                 .thenThrow(new DownstreamServiceException("Registration count is unavailable for event 10"));
 
@@ -294,7 +296,7 @@ class EventServiceTest {
                 .hasMessage("Event not found with id 10");
     }
 
-    private static Event event(Long id, Long organizerId, EventStatus status) {
+    private static Event event(Long id, List<Long> organizerIds, EventStatus status) {
         Event event = new Event();
         event.setId(id);
         event.setTitle("Spring Boot Workshop");
@@ -303,7 +305,7 @@ class EventServiceTest {
         event.setStartTime(LocalDateTime.of(2026, 5, 1, 10, 0));
         event.setEndTime(LocalDateTime.of(2026, 5, 1, 13, 0));
         event.setMaxSeats(100);
-        event.setOrganizerId(organizerId);
+        event.setOrganizerIds(organizerIds);
         event.setStatus(status);
         return event;
     }

@@ -185,7 +185,7 @@ class RegistrationServiceTest {
     @Test
     void getEventRegistrationsAllowsOrganizerOwner() {
         EventDetailsResponse event = scheduledEvent();
-        event.setOrganizerId(5L);
+        event.setOrganizerIds(List.of(5L, 8L));
         when(eventServiceClient.getEvent(10L)).thenReturn(event);
         when(registrationRepository.findAllByEventIdOrderByRegisteredAtAsc(10L)).thenReturn(List.of(existingRegistration()));
 
@@ -198,7 +198,7 @@ class RegistrationServiceTest {
     @Test
     void getEventRegistrationsRejectsParticipant() {
         EventDetailsResponse event = scheduledEvent();
-        event.setOrganizerId(5L);
+        event.setOrganizerIds(List.of(5L, 8L));
         when(eventServiceClient.getEvent(10L)).thenReturn(event);
 
         assertThatThrownBy(() -> registrationService.getEventRegistrations(10L, participant))

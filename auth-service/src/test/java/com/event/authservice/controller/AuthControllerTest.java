@@ -33,7 +33,7 @@ class AuthControllerTest {
     @Test
     void registerReturnsCreatedResponse() {
         RegisterRequest request = new RegisterRequest();
-        UserResponse response = new UserResponse(2L, "Ali Hassan", "ali@example.com", "ACTIVE", List.of("PARTICIPANT"));
+        UserResponse response = new UserResponse(2L, "Ali Hassan", "ali@example.com", null, "ACTIVE", List.of("PARTICIPANT"));
 
         when(authService.register(request)).thenReturn(response);
 
@@ -62,7 +62,7 @@ class AuthControllerTest {
     void createManagedUserReturnsCreatedResponse() {
         CreateManagedUserRequest request = new CreateManagedUserRequest();
         AuthUserPrincipal principal = new AuthUserPrincipal(1L, "admin@event.local", List.of("ADMIN"));
-        UserResponse response = new UserResponse(3L, "Omar Organizer", "omar@example.com", "ACTIVE", List.of("ORGANIZER"));
+        UserResponse response = new UserResponse(3L, "Omar Organizer", "omar@example.com", null, "ACTIVE", List.of("ORGANIZER"));
 
         when(authService.createManagedUser(principal, request)).thenReturn(response);
 
@@ -76,7 +76,7 @@ class AuthControllerTest {
     @Test
     void meReturnsCurrentUser() {
         AuthUserPrincipal principal = new AuthUserPrincipal(2L, "ali@example.com", List.of("PARTICIPANT"));
-        UserResponse response = new UserResponse(2L, "Ali Hassan", "ali@example.com", "ACTIVE", List.of("PARTICIPANT"));
+        UserResponse response = new UserResponse(2L, "Ali Hassan", "ali@example.com", null, "ACTIVE", List.of("PARTICIPANT"));
 
         when(authService.getCurrentUser(principal)).thenReturn(response);
 
@@ -104,7 +104,7 @@ class AuthControllerTest {
     @Test
     void getUserChecksAuthorizationThenReturnsUser() {
         AuthUserPrincipal principal = new AuthUserPrincipal(1L, "admin@event.local", List.of("ADMIN"));
-        UserResponse response = new UserResponse(2L, "Ali Hassan", "ali@example.com", "ACTIVE", List.of("PARTICIPANT"));
+        UserResponse response = new UserResponse(2L, "Ali Hassan", "ali@example.com", null, "ACTIVE", List.of("PARTICIPANT"));
 
         when(authService.getUserById(2L)).thenReturn(response);
 

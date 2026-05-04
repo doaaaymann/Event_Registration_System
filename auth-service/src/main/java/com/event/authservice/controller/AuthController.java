@@ -3,6 +3,7 @@ package com.event.authservice.controller;
 import com.event.authservice.dto.request.LoginRequest;
 import com.event.authservice.dto.request.CreateManagedUserRequest;
 import com.event.authservice.dto.request.RegisterRequest;
+import com.event.authservice.dto.request.UpdateProfileRequest;
 import com.event.authservice.dto.response.AuthResponse;
 import com.event.authservice.dto.response.TokenValidationResponse;
 import com.event.authservice.dto.response.UserResponse;
@@ -15,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,6 +52,12 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal AuthUserPrincipal principal) {
         return ResponseEntity.ok(authService.getCurrentUser(principal));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<UserResponse> updateMe(@AuthenticationPrincipal AuthUserPrincipal principal,
+                                                 @Valid @RequestBody UpdateProfileRequest request) {
+        return ResponseEntity.ok(authService.updateCurrentUser(principal, request));
     }
 
     @GetMapping("/validate")

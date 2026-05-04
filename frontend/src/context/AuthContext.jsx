@@ -27,6 +27,7 @@ function decodeFallbackUser(token) {
       id: payload.userId || payload.sub,
       fullName: payload.name || payload.sub,
       email: payload.sub,
+      interests: '',
       roles: Array.isArray(roles) ? roles : [roles].filter(Boolean),
     };
   } catch {
@@ -80,10 +81,20 @@ export function AuthProvider({ children }) {
     localStorage.setItem('ers_user', JSON.stringify(nextUser));
     setToken(nextToken);
     setUser(nextUser);
+    return nextUser;
   }
 
   async function register(payload) {
-    return api.post('/auth/register', payload);
+    const response = await api.post('/auth/register', payload);
+    return response.data;
+  }
+
+  async function updateProfile(payload) {
+    const response = await api.put('/auth/me', payload);
+    const nextUser = response.data;
+    localStorage.setItem('ers_user', JSON.stringify(nextUser));
+    setUser(nextUser);
+    return nextUser;
   }
 
   function logout() {
@@ -101,6 +112,7 @@ export function AuthProvider({ children }) {
       isAuthenticated: Boolean(token),
       login,
       register,
+      updateProfile,
       logout,
     }),
     [loading, token, user],

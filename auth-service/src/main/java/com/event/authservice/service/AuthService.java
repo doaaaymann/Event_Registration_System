@@ -4,6 +4,7 @@ import com.event.authservice.aop.AuditAction;
 import com.event.authservice.dto.request.LoginRequest;
 import com.event.authservice.dto.request.CreateManagedUserRequest;
 import com.event.authservice.dto.request.RegisterRequest;
+import com.event.authservice.dto.request.UpdateProfileRequest;
 import com.event.authservice.dto.response.AuthResponse;
 import com.event.authservice.dto.response.TokenValidationResponse;
 import com.event.authservice.dto.response.UserResponse;
@@ -86,6 +87,34 @@ public class AuthService {
         return getUserById(principal.getUserId());
     }
 
+    @Transactional
+    @AuditAction("UPDATE_CURRENT_USER")
+    public UserResponse updateCurrentUser(AuthUserPrincipal principal, UpdateProfileRequest request) {
+        if (principal == null || principal.getUserId() == null) {
+            throw new BadCredentialsException("Invalid session");
+        }
+
+        User user = userRepository.findById(principal.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .filter(existing -> !existing.getId().equals(user.getId()))
+                .ifPresent(existing -> {
+                    throw new BadRequestException("Email is already registered");
+                });
+
+        if (principal.getRoles() != null && principal.getRoles().contains("ADMIN") && request.getFullName() != null) {
+            user.setFullName(request.getFullName().trim());
+        }
+        user.setEmail(normalizedEmail);
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        }
+
+        return toUserResponse(userRepository.save(user));
+    }
+
     @Transactional(readOnly = true)
     @AuditAction("GET_USER_BY_ID")
     public UserResponse getUserById(Long userId) {
@@ -152,6 +181,7 @@ public class AuthService {
                 user.getId(),
                 user.getFullName(),
                 user.getEmail(),
+                user.getInterests(),
                 user.getStatus().name(),
                 extractRoles(user)
         );

@@ -11,6 +11,20 @@ export function formatDateTime(value) {
   }
 }
 
+export function formatShortDate(value) {
+  if (!value) return 'TBA';
+
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
 export function roleLabel(role) {
   return role
     ?.toLowerCase()
@@ -26,8 +40,74 @@ export function normalizeArray(payload) {
   return [];
 }
 
+export function hasRole(user, role) {
+  return user?.roles?.includes(role);
+}
+
+export function normalizeOrganizerIds(event) {
+  if (Array.isArray(event?.organizerIds) && event.organizerIds.length) {
+    return event.organizerIds.map((id) => Number(id)).filter(Number.isFinite);
+  }
+  if (event?.organizerId != null) {
+    return [Number(event.organizerId)].filter(Number.isFinite);
+  }
+  return [];
+}
+
+export function eventHasOrganizer(event, userId) {
+  return normalizeOrganizerIds(event).some((organizerId) => String(organizerId) === String(userId));
+}
+
+export function hasAnyRole(user, roles) {
+  return roles.some((role) => hasRole(user, role));
+}
+
+export function getPrimaryRole(user) {
+  if (hasRole(user, 'ADMIN')) return 'ADMIN';
+  if (hasRole(user, 'ORGANIZER')) return 'ORGANIZER';
+  if (hasRole(user, 'PARTICIPANT')) return 'PARTICIPANT';
+  return '';
+}
+
+export function getDefaultRouteForUser(user) {
+  const primaryRole = getPrimaryRole(user);
+
+  if (primaryRole === 'ADMIN') return '/admin';
+  if (primaryRole === 'ORGANIZER') return '/organizer';
+  if (primaryRole === 'PARTICIPANT') return '/events';
+  return '/';
+}
+
 export function getEventStatusTone(status) {
-  if (status === 'CANCELLED') return 'bg-rose-50 text-rose-700 border-rose-200';
-  if (status === 'RESCHEDULED') return 'bg-amber-50 text-amber-700 border-amber-200';
-  return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if (status === 'CANCELLED') return 'bg-rose-100 text-rose-700 border-rose-200';
+  if (status === 'RESCHEDULED') return 'bg-amber-100 text-amber-800 border-amber-200';
+  return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+}
+
+export function formatStatusLabel(status) {
+  if (status === 'SCHEDULED') return 'Upcoming';
+  if (status === 'RESCHEDULED') return 'Rescheduled';
+  if (status === 'CANCELLED') return 'Cancelled';
+  return status || 'Upcoming';
+}
+
+export function isConfirmedRegistration(registration) {
+  return (registration?.status || '').toUpperCase() === 'REGISTERED';
+}
+
+export function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export function validatePassword(password) {
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,100}$/.test(password || '');
+}
+
+export function getInitials(name) {
+  return (name || 'User')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
 }

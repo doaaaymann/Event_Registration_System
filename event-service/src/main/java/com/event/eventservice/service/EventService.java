@@ -4,6 +4,7 @@ import com.event.eventservice.client.NotificationServiceClient;
 import com.event.eventservice.client.RegistrationServiceClient;
 import com.event.eventservice.dto.client.NotificationTriggerRequest;
 import com.event.eventservice.dto.client.RegistrationSummaryResponse;
+import com.event.eventservice.dto.request.AssignOrganizerRequest;
 import com.event.eventservice.dto.request.CreateEventRequest;
 import com.event.eventservice.dto.request.RescheduleEventRequest;
 import com.event.eventservice.dto.request.UpdateEventRequest;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -44,7 +46,8 @@ public class EventService {
     @Transactional
     public CreateEventResponse createEvent(AuthUserPrincipal principal, CreateEventRequest request) {
         ensureOrganizerOrAdmin(principal);
-        ensurePrincipalOwnsOrganizerScope(principal, request.getOrganizerId());
+        List<Long> organizerIds = normalizeOrganizerIds(request.getOrganizerIds());
+        ensurePrincipalOwnsOrganizerScope(principal, organizerIds);
         validateSchedule(request.getStartTime(), request.getEndTime());
 
         Event event = new Event();
@@ -54,7 +57,7 @@ public class EventService {
         event.setStartTime(request.getStartTime());
         event.setEndTime(request.getEndTime());
         event.setMaxSeats(request.getMaxSeats());
-        event.setOrganizerId(request.getOrganizerId());
+        event.setOrganizerIds(organizerIds);
         event.setStatus(EventStatus.SCHEDULED);
 
         Event savedEvent = eventRepository.save(event);
@@ -75,8 +78,10 @@ public class EventService {
     }
 
     public List<EventSummaryResponse> getOrganizerEvents(AuthUserPrincipal principal, Long organizerId) {
-        ensureOrganizerOwnerOrAdmin(principal, organizerId);
-        List<Event> events = eventRepository.findByOrganizerIdOrderByStartTimeAsc(organizerId);
+        ensureOrganizerOwnerOrAdmin(principal, List.of(organizerId));
+        List<Event> events = eventRepository.findAllByOrderByStartTimeAsc().stream()
+                .filter(event -> event.getOrganizerIds().contains(organizerId))
+                .toList();
         Map<Long, Integer> registeredCounts = getRegisteredCounts(events);
         return events.stream()
                 .map(event -> toSummaryResponse(event, registeredCounts.getOrDefault(event.getId(), 0)))
@@ -113,7 +118,7 @@ public class EventService {
         }
         event.setStatus(EventStatus.CANCELLED);
         Event savedEvent = eventRepository.save(event);
-        sendEventCancelledNotifications(savedEvent);
+        sendEventCancelledNotifications(savedEvent, principal);
         return toEventResponse(savedEvent);
     }
 
@@ -129,8 +134,17 @@ public class EventService {
         event.setStatus(EventStatus.RESCHEDULED);
 
         Event savedEvent = eventRepository.save(event);
-        sendEventRescheduledNotifications(savedEvent);
+        sendEventRescheduledNotifications(savedEvent, principal);
         return toEventResponse(savedEvent);
+    }
+
+    @Transactional
+    public EventResponse assignOrganizer(AuthUserPrincipal principal, Long eventId, AssignOrganizerRequest request) {
+        ensureAdmin(principal);
+        Event event = getEventEntity(eventId);
+        ensureNotCancelled(event);
+        event.setOrganizerIds(normalizeOrganizerIds(request.getOrganizerIds()));
+        return toEventResponse(eventRepository.save(event));
     }
 
     public EventAvailabilityResponse getAvailability(Long eventId) {
@@ -148,24 +162,37 @@ public class EventService {
         );
     }
 
-    public void ensureOrganizerOwnerOrAdmin(AuthUserPrincipal principal, Long organizerId) {
+    public void ensureOrganizerOwnerOrAdmin(AuthUserPrincipal principal, List<Long> organizerIds) {
         ensureOrganizerOrAdmin(principal);
-        ensurePrincipalOwnsOrganizerScope(principal, organizerId);
+        ensurePrincipalOwnsOrganizerScope(principal, organizerIds);
     }
 
     private void ensureEventOwnerOrAdmin(AuthUserPrincipal principal, Event event) {
-        ensureOrganizerOwnerOrAdmin(principal, event.getOrganizerId());
+        ensureOrganizerOwnerOrAdmin(principal, event.getOrganizerIds());
+    }
+
+    private void ensureAdmin(AuthUserPrincipal principal) {
+        if (principal == null || principal.getUserId() == null
+                || principal.getRoles() == null || !principal.getRoles().contains("ADMIN")) {
+            throw new AccessDeniedException("Access is denied");
+        }
     }
 
     private void ensureOrganizerOrAdmin(AuthUserPrincipal principal) {
-        if (principal == null || principal.getRoles().stream().noneMatch(role ->
+        if (principal == null || principal.getRoles() == null || principal.getRoles().stream().noneMatch(role ->
                 "ADMIN".equals(role) || "ORGANIZER".equals(role))) {
             throw new AccessDeniedException("Access is denied");
         }
     }
 
-    private void ensurePrincipalOwnsOrganizerScope(AuthUserPrincipal principal, Long organizerId) {
-        if (!principal.getRoles().contains("ADMIN") && !principal.getUserId().equals(organizerId)) {
+    private void ensurePrincipalOwnsOrganizerScope(AuthUserPrincipal principal, List<Long> organizerIds) {
+        if (principal == null || principal.getUserId() == null || principal.getRoles() == null) {
+            throw new AccessDeniedException("Access is denied");
+        }
+        if (principal.getRoles().contains("ADMIN")) {
+            return;
+        }
+        if (organizerIds == null || organizerIds.isEmpty() || organizerIds.stream().anyMatch(id -> !principal.getUserId().equals(id))) {
             throw new AccessDeniedException("Access is denied");
         }
     }
@@ -199,7 +226,8 @@ public class EventService {
                 registeredCount,
                 calculateAvailableSeats(event.getMaxSeats(), registeredCount),
                 event.getStatus(),
-                event.getOrganizerId()
+                event.getOrganizerId(),
+                event.getOrganizerIds()
         );
     }
 
@@ -216,7 +244,8 @@ public class EventService {
                 registeredCount,
                 calculateAvailableSeats(event.getMaxSeats(), registeredCount),
                 event.getStatus(),
-                event.getOrganizerId()
+                event.getOrganizerId(),
+                event.getOrganizerIds()
         );
     }
 
@@ -234,8 +263,8 @@ public class EventService {
         return Math.max(maxSeats - registeredCount, 0);
     }
 
-    private void sendEventCancelledNotifications(Event event) {
-        List<Long> recipientIds = getActiveParticipantIds(event.getId());
+    private void sendEventCancelledNotifications(Event event, AuthUserPrincipal principal) {
+        List<Long> recipientIds = getAffectedUserIds(event, principal);
         if (recipientIds.isEmpty()) {
             return;
         }
@@ -247,8 +276,8 @@ public class EventService {
         ));
     }
 
-    private void sendEventRescheduledNotifications(Event event) {
-        List<Long> recipientIds = getActiveParticipantIds(event.getId());
+    private void sendEventRescheduledNotifications(Event event, AuthUserPrincipal principal) {
+        List<Long> recipientIds = getAffectedUserIds(event, principal);
         if (recipientIds.isEmpty()) {
             return;
         }
@@ -258,6 +287,29 @@ public class EventService {
                 "Event Rescheduled",
                 event.getTitle() + " has been rescheduled"
         ));
+    }
+
+    private List<Long> getAffectedUserIds(Event event, AuthUserPrincipal principal) {
+        LinkedHashSet<Long> recipientIds = new LinkedHashSet<>();
+        if (principal != null && principal.getUserId() != null) {
+            recipientIds.add(principal.getUserId());
+        }
+        recipientIds.addAll(event.getOrganizerIds().stream()
+                .filter(organizerId -> organizerId != null && organizerId > 0)
+                .toList());
+        recipientIds.addAll(getActiveParticipantIds(event.getId()));
+        return recipientIds.stream().toList();
+    }
+
+    private List<Long> normalizeOrganizerIds(List<Long> organizerIds) {
+        List<Long> normalized = organizerIds == null ? List.of() : organizerIds.stream()
+                .filter(id -> id != null && id > 0)
+                .distinct()
+                .toList();
+        if (normalized.isEmpty()) {
+            throw new BadRequestException("At least one organizer is required");
+        }
+        return normalized;
     }
 
     private List<Long> getActiveParticipantIds(Long eventId) {

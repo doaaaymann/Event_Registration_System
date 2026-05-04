@@ -51,7 +51,7 @@ class EventControllerTest {
     void getAllEventsReturnsOkResponse() {
         List<EventSummaryResponse> response = List.of(
                 new EventSummaryResponse(10L, "Workshop", "Desc", "Hall A", "2026-05-01T10:00", "2026-05-01T13:00",
-                        100, 0, 100, EventStatus.SCHEDULED, 2L)
+                        100, 0, 100, EventStatus.SCHEDULED, 2L, List.of(2L))
         );
 
         when(eventService.getAllEvents()).thenReturn(response);
@@ -66,7 +66,7 @@ class EventControllerTest {
     @Test
     void getEventReturnsOkResponse() {
         EventResponse response = new EventResponse(10L, "Workshop", "Desc", "Hall A", "2026-05-01T10:00",
-                "2026-05-01T13:00", 100, 0, 100, EventStatus.SCHEDULED, 2L);
+                "2026-05-01T13:00", 100, 0, 100, EventStatus.SCHEDULED, 2L, List.of(2L));
 
         when(eventService.getEvent(10L)).thenReturn(response);
 
@@ -82,7 +82,7 @@ class EventControllerTest {
         AuthUserPrincipal principal = new AuthUserPrincipal(2L, "organizer@example.com", List.of("ORGANIZER"));
         List<EventSummaryResponse> response = List.of(
                 new EventSummaryResponse(10L, "Workshop", "Desc", "Hall A", "2026-05-01T10:00", "2026-05-01T13:00",
-                        100, 0, 100, EventStatus.SCHEDULED, 2L)
+                        100, 0, 100, EventStatus.SCHEDULED, 2L, List.of(2L))
         );
 
         when(eventService.getOrganizerEvents(principal, 2L)).thenReturn(response);
@@ -99,7 +99,7 @@ class EventControllerTest {
         AuthUserPrincipal principal = new AuthUserPrincipal(2L, "organizer@example.com", List.of("ORGANIZER"));
         UpdateEventRequest request = new UpdateEventRequest();
         EventResponse response = new EventResponse(10L, "Workshop", "Desc", "Hall B", "2026-05-01T11:00",
-                "2026-05-01T14:00", 120, 0, 120, EventStatus.SCHEDULED, 2L);
+                "2026-05-01T14:00", 120, 0, 120, EventStatus.SCHEDULED, 2L, List.of(2L));
 
         when(eventService.updateEvent(principal, 10L, request)).thenReturn(response);
 
@@ -114,7 +114,7 @@ class EventControllerTest {
     void cancelEventReturnsOkResponse() {
         AuthUserPrincipal principal = new AuthUserPrincipal(2L, "organizer@example.com", List.of("ORGANIZER"));
         EventResponse response = new EventResponse(10L, "Workshop", "Desc", "Hall A", "2026-05-01T10:00",
-                "2026-05-01T13:00", 100, 0, 100, EventStatus.CANCELLED, 2L);
+                "2026-05-01T13:00", 100, 0, 100, EventStatus.CANCELLED, 2L, List.of(2L));
 
         when(eventService.cancelEvent(principal, 10L)).thenReturn(response);
 
@@ -130,7 +130,7 @@ class EventControllerTest {
         AuthUserPrincipal principal = new AuthUserPrincipal(2L, "organizer@example.com", List.of("ORGANIZER"));
         RescheduleEventRequest request = new RescheduleEventRequest();
         EventResponse response = new EventResponse(10L, "Workshop", "Desc", "Hall A", "2026-05-02T10:00",
-                "2026-05-02T13:00", 100, 0, 100, EventStatus.RESCHEDULED, 2L);
+                "2026-05-02T13:00", 100, 0, 100, EventStatus.RESCHEDULED, 2L, List.of(2L));
 
         when(eventService.rescheduleEvent(principal, 10L, request)).thenReturn(response);
 
