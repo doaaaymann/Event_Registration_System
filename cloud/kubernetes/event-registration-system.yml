@@ -1,0 +1,355 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+data:
+  01-create-databases.sql: |
+    CREATE DATABASE auth_db;
+    CREATE DATABASE event_db;
+    CREATE DATABASE registration_db;
+    CREATE DATABASE notification_db;
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: postgres
+          volumeMounts:
+            - name: postgres-init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: postgres-init-scripts
+          configMap:
+            name: postgres-init-scripts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-server
+  template:
+    metadata:
+      labels:
+        app: config-server
+    spec:
+      containers:
+        - name: config-server
+          image: event-registration/config-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8888
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-server
+spec:
+  selector:
+    app: config-server
+  ports:
+    - name: http
+      port: 8888
+      targetPort: 8888
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eureka-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eureka-server
+  template:
+    metadata:
+      labels:
+        app: eureka-server
+    spec:
+      containers:
+        - name: eureka-server
+          image: event-registration/eureka-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8761
+          env:
+            - name: CONFIG_SERVER_URI
+              value: http://config-server:8888
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eureka-server
+spec:
+  selector:
+    app: eureka-server
+  ports:
+    - name: http
+      port: 8761
+      targetPort: 8761
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: event-registration/api-gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: CONFIG_SERVER_URI
+              value: http://config-server:8888
+            - name: EUREKA_SERVER_URL
+              value: http://eureka-server:8761/eureka
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+spec:
+  type: NodePort
+  selector:
+    app: api-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+        - name: auth-service
+          image: event-registration/auth-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          env:
+            - name: CONFIG_SERVER_URI
+              value: http://config-server:8888
+            - name: EUREKA_SERVER_URL
+              value: http://eureka-server:8761/eureka
+            - name: AUTH_DB_URL
+              value: jdbc:postgresql://postgres:5432/auth_db
+            - name: AUTH_DB_USERNAME
+              value: postgres
+            - name: AUTH_DB_PASSWORD
+              value: postgres
+            - name: AUTH_ADMIN_SEED_ENABLED
+              value: "true"
+            - name: AUTH_ADMIN_FULL_NAME
+              value: System Administrator
+            - name: AUTH_ADMIN_EMAIL
+              value: admin@event.local
+            - name: AUTH_ADMIN_PASSWORD
+              value: EventAdmin123!
+            - name: INTERNAL_NOTIFICATION_API_KEY
+              value: event-system-internal-key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+spec:
+  selector:
+    app: auth-service
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: event-service
+  template:
+    metadata:
+      labels:
+        app: event-service
+    spec:
+      containers:
+        - name: event-service
+          image: event-registration/event-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          env:
+            - name: CONFIG_SERVER_URI
+              value: http://config-server:8888
+            - name: EUREKA_SERVER_URL
+              value: http://eureka-server:8761/eureka
+            - name: EVENT_DB_URL
+              value: jdbc:postgresql://postgres:5432/event_db
+            - name: EVENT_DB_USERNAME
+              value: postgres
+            - name: EVENT_DB_PASSWORD
+              value: postgres
+            - name: INTERNAL_NOTIFICATION_API_KEY
+              value: event-system-internal-key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: event-service
+spec:
+  selector:
+    app: event-service
+  ports:
+    - name: http
+      port: 8082
+      targetPort: 8082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registration-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registration-service
+  template:
+    metadata:
+      labels:
+        app: registration-service
+    spec:
+      containers:
+        - name: registration-service
+          image: event-registration/registration-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+          env:
+            - name: CONFIG_SERVER_URI
+              value: http://config-server:8888
+            - name: EUREKA_SERVER_URL
+              value: http://eureka-server:8761/eureka
+            - name: REGISTRATION_DB_URL
+              value: jdbc:postgresql://postgres:5432/registration_db
+            - name: REGISTRATION_DB_USERNAME
+              value: postgres
+            - name: REGISTRATION_DB_PASSWORD
+              value: postgres
+            - name: INTERNAL_NOTIFICATION_API_KEY
+              value: event-system-internal-key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registration-service
+spec:
+  selector:
+    app: registration-service
+  ports:
+    - name: http
+      port: 8083
+      targetPort: 8083
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: event-registration/notification-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8084
+          env:
+            - name: CONFIG_SERVER_URI
+              value: http://config-server:8888
+            - name: EUREKA_SERVER_URL
+              value: http://eureka-server:8761/eureka
+            - name: NOTIFICATION_DB_URL
+              value: jdbc:postgresql://postgres:5432/notification_db
+            - name: NOTIFICATION_DB_USERNAME
+              value: postgres
+            - name: NOTIFICATION_DB_PASSWORD
+              value: postgres
+            - name: INTERNAL_NOTIFICATION_API_KEY
+              value: event-system-internal-key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - name: http
+      port: 8084
+      targetPort: 8084

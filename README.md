@@ -136,9 +136,11 @@ The cleaned documentation folder is organized as follows:
 - [`docs/README.md`](./docs/README.md)
   - documentation index
 - [`docs/architecture/`](./docs/architecture)
-  - architecture artifacts such as the ERD
+  - architecture artifacts such as the ERD, OCL constraints, and design-pattern documentation
 - [`docs/srs/`](./docs/srs)
   - SRS-related deliverables and generation assets
+- [`cloud/`](./cloud)
+  - cloud deployment guide and Kubernetes manifests for running the microservices on cloud-style infrastructure
 
 ### ERD
 
@@ -148,6 +150,15 @@ The cleaned documentation folder is organized as follows:
   - ERD notes and Mermaid source
 - [`docs/architecture/OCL_Constraints.md`](./docs/architecture/OCL_Constraints.md)
   - formal OCL expressions for core business rules enforced by the implementation
+- [`docs/architecture/Design_Patterns.md`](./docs/architecture/Design_Patterns.md)
+  - explanation of the design patterns used in the project with implementation references
+
+### Cloud Deployment
+
+- [`cloud/README.md`](./cloud/README.md)
+  - explains Docker Compose deployment on a cloud VM and Kubernetes deployment
+- [`cloud/kubernetes/event-registration-system.yml`](./cloud/kubernetes/event-registration-system.yml)
+  - Kubernetes manifest for PostgreSQL, Config Server, Eureka Server, API Gateway, and the backend domain services
 
 ## Database Model
 
