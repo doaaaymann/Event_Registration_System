@@ -2,8 +2,10 @@ package com.event.registrationservice.service;
 
 import com.event.registrationservice.client.EventServiceClient;
 import com.event.registrationservice.client.NotificationServiceClient;
+import com.event.registrationservice.client.UserServiceClient;
 import com.event.registrationservice.dto.client.EventAvailabilityResponse;
 import com.event.registrationservice.dto.client.EventDetailsResponse;
+import com.event.registrationservice.dto.client.UserDetailsResponse;
 import com.event.registrationservice.dto.request.CreateRegistrationRequest;
 import com.event.registrationservice.dto.response.RegistrationResponse;
 import com.event.registrationservice.entity.Registration;
@@ -47,6 +49,9 @@ class RegistrationServiceTest {
 
     @Mock
     private EventLockManager eventLockManager;
+
+    @Mock
+    private UserServiceClient userServiceClient;
 
     @InjectMocks
     private RegistrationService registrationService;
@@ -188,11 +193,13 @@ class RegistrationServiceTest {
         event.setOrganizerIds(List.of(5L, 8L));
         when(eventServiceClient.getEvent(10L)).thenReturn(event);
         when(registrationRepository.findAllByEventIdOrderByRegisteredAtAsc(10L)).thenReturn(List.of(existingRegistration()));
+        when(userServiceClient.getUserById(1L)).thenReturn(userDetails(1L, "Ali Hassan"));
 
         AuthenticatedUser organizer = new AuthenticatedUser(5L, "organizer@example.com", List.of("ORGANIZER"));
         List<RegistrationResponse> result = registrationService.getEventRegistrations(10L, organizer);
 
         assertThat(result).hasSize(1);
+        assertThat(result.get(0).getParticipantName()).isEqualTo("Ali Hassan");
     }
 
     @Test
@@ -234,6 +241,13 @@ class RegistrationServiceTest {
         response.setStatus("SCHEDULED");
         response.setAvailableSeats(seats);
         response.setRegistrationOpen(registrationOpen);
+        return response;
+    }
+
+    private UserDetailsResponse userDetails(Long id, String fullName) {
+        UserDetailsResponse response = new UserDetailsResponse();
+        response.setId(id);
+        response.setFullName(fullName);
         return response;
     }
 

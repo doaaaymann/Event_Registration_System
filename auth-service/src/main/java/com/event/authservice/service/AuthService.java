@@ -1,6 +1,7 @@
 package com.event.authservice.service;
 
 import com.event.authservice.aop.AuditAction;
+import com.event.authservice.config.InternalApiProperties;
 import com.event.authservice.dto.request.LoginRequest;
 import com.event.authservice.dto.request.CreateManagedUserRequest;
 import com.event.authservice.dto.request.RegisterRequest;
@@ -34,15 +35,18 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final InternalApiProperties internalApiProperties;
 
     public AuthService(UserRepository userRepository,
                        RoleRepository roleRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtService jwtService) {
+                       JwtService jwtService,
+                       InternalApiProperties internalApiProperties) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.internalApiProperties = internalApiProperties;
     }
 
     @Transactional
@@ -124,6 +128,13 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
+    @AuditAction("GET_USER_BY_ID_INTERNAL")
+    public UserResponse getUserByIdInternal(String internalApiKey, Long userId) {
+        validateInternalApiKey(internalApiKey);
+        return getUserById(userId);
+    }
+
+    @Transactional(readOnly = true)
     @AuditAction("GET_USER_ROLES")
     public List<String> getUserRoles(Long userId) {
         User user = userRepository.findById(userId)
@@ -154,6 +165,15 @@ public class AuthService {
         if (principal == null || principal.getUserId() == null
                 || principal.getRoles() == null || !principal.getRoles().contains("ADMIN")) {
             throw new AccessDeniedException("Access is denied");
+        }
+    }
+
+    private void validateInternalApiKey(String internalApiKey) {
+        if (internalApiProperties.getKey() == null || internalApiProperties.getKey().isBlank()) {
+            throw new AccessDeniedException("Internal API key is not configured");
+        }
+        if (internalApiKey == null || !internalApiProperties.getKey().equals(internalApiKey)) {
+            throw new AccessDeniedException("Invalid internal API key");
         }
     }
 

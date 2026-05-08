@@ -136,7 +136,7 @@ export default function EventDetailsPage() {
             ) : (
               participants.map((participant) => (
                 <article key={participant.id} className="glass-panel p-6">
-                  <p className="text-base font-semibold text-slate-900">{participant.participantName || participant.userName || `Participant #${participant.userId}`}</p>
+                  <p className="text-base font-semibold text-slate-900">{participant.participantName || participant.userName || `Participant #${participant.participantId}`}</p>
                   <p className="mt-2 text-sm text-slate-500">Status: {participant.status || 'REGISTERED'}</p>
                 </article>
               ))

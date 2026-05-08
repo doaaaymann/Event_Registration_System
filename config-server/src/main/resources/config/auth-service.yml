@@ -28,6 +28,8 @@ application:
       full-name: ${AUTH_ADMIN_FULL_NAME:System Administrator}
       email: ${AUTH_ADMIN_EMAIL:}
       password: ${AUTH_ADMIN_PASSWORD:}
+  internal-api:
+    key: ${INTERNAL_NOTIFICATION_API_KEY:event-system-internal-key}
   security:
     jwt:
       secret: ${AUTH_JWT_SECRET:TXlTdXBlclNlY3JldEtleUZvckp3dEF1dGhTZXJ2aWNlMTIzNDU2Nzg5MDEyMzQ1Njc4OTA=}

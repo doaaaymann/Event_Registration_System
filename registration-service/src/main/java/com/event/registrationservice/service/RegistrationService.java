@@ -2,6 +2,7 @@ package com.event.registrationservice.service;
 
 import com.event.registrationservice.client.EventServiceClient;
 import com.event.registrationservice.client.NotificationServiceClient;
+import com.event.registrationservice.client.UserServiceClient;
 import com.event.registrationservice.dto.client.EventAvailabilityResponse;
 import com.event.registrationservice.dto.client.EventDetailsResponse;
 import com.event.registrationservice.dto.client.NotificationCommand;
@@ -24,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class RegistrationService {
@@ -35,15 +38,18 @@ public class RegistrationService {
     private final EventServiceClient eventServiceClient;
     private final NotificationServiceClient notificationServiceClient;
     private final EventLockManager eventLockManager;
+    private final UserServiceClient userServiceClient;
 
     public RegistrationService(RegistrationRepository registrationRepository,
                                EventServiceClient eventServiceClient,
                                NotificationServiceClient notificationServiceClient,
-                               EventLockManager eventLockManager) {
+                               EventLockManager eventLockManager,
+                               UserServiceClient userServiceClient) {
         this.registrationRepository = registrationRepository;
         this.eventServiceClient = eventServiceClient;
         this.notificationServiceClient = notificationServiceClient;
         this.eventLockManager = eventLockManager;
+        this.userServiceClient = userServiceClient;
     }
 
     @Transactional
@@ -103,9 +109,11 @@ public class RegistrationService {
         requireAuthenticatedUser(authenticatedUser);
         EventDetailsResponse event = fetchEvent(eventId);
         enforceParticipantTrackingAccess(authenticatedUser, event);
-        return registrationRepository.findAllByEventIdOrderByRegisteredAtAsc(eventId)
+        List<Registration> registrations = registrationRepository.findAllByEventIdOrderByRegisteredAtAsc(eventId);
+        Map<Long, String> participantNames = getParticipantNames(registrations);
+        return registrations
                 .stream()
-                .map(this::toResponse)
+                .map(registration -> toResponse(registration, participantNames.get(registration.getParticipantId())))
                 .toList();
     }
 
@@ -230,13 +238,44 @@ public class RegistrationService {
     }
 
     private RegistrationResponse toResponse(Registration registration) {
+        return toResponse(registration, null);
+    }
+
+    private RegistrationResponse toResponse(Registration registration, String participantName) {
         return new RegistrationResponse(
                 registration.getId(),
                 registration.getEventId(),
                 registration.getParticipantId(),
+                participantName,
                 registration.getStatus().name(),
                 registration.getRegisteredAt(),
                 registration.getCancelledAt()
         );
+    }
+
+    private Map<Long, String> getParticipantNames(List<Registration> registrations) {
+        return registrations.stream()
+                .map(Registration::getParticipantId)
+                .filter(participantId -> participantId != null && participantId > 0)
+                .distinct()
+                .map(this::fetchUserName)
+                .flatMap(java.util.Optional::stream)
+                .collect(Collectors.toMap(UserNameLookup::participantId, UserNameLookup::participantName, (left, right) -> left));
+    }
+
+    private java.util.Optional<UserNameLookup> fetchUserName(Long participantId) {
+        try {
+            String participantName = userServiceClient.getUserById(participantId).getFullName();
+            if (participantName == null || participantName.isBlank()) {
+                return java.util.Optional.empty();
+            }
+            return java.util.Optional.of(new UserNameLookup(participantId, participantName.trim()));
+        } catch (FeignException ex) {
+            log.warn("Failed to fetch participant name for user {}: {}", participantId, ex.getMessage());
+            return java.util.Optional.empty();
+        }
+    }
+
+    private record UserNameLookup(Long participantId, String participantName) {
     }
 }

@@ -20,6 +20,9 @@ spring:
           event-service:
             connect-timeout: 5000
             read-timeout: 5000
+          auth-service:
+            connect-timeout: 5000
+            read-timeout: 5000
           notification-service:
             connect-timeout: 5000
             read-timeout: 5000

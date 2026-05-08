@@ -54,7 +54,7 @@ class RegistrationControllerTest {
         request.setEventId(10L);
 
         when(registrationService.createRegistration(ArgumentMatchers.any(), ArgumentMatchers.any()))
-                .thenReturn(new RegistrationResponse(100L, 10L, 1L, "REGISTERED", LocalDateTime.now(), null));
+                .thenReturn(new RegistrationResponse(100L, 10L, 1L, "Ali Hassan", "REGISTERED", LocalDateTime.now(), null));
 
         mockMvc.perform(post("/api/registrations")
                         .with(authentication(TestAuthenticationFactory.authentication()))
@@ -85,8 +85,8 @@ class RegistrationControllerTest {
     void getMyRegistrationsReturnsList() throws Exception {
         when(registrationService.getMyRegistrations(nullable(AuthenticatedUser.class)))
                 .thenReturn(List.of(
-                        new RegistrationResponse(100L, 10L, 1L, "REGISTERED", LocalDateTime.now(), null),
-                        new RegistrationResponse(101L, 12L, 1L, "CANCELLED", LocalDateTime.now().minusDays(1), LocalDateTime.now())
+                        new RegistrationResponse(100L, 10L, 1L, "Ali Hassan", "REGISTERED", LocalDateTime.now(), null),
+                        new RegistrationResponse(101L, 12L, 1L, "Ali Hassan", "CANCELLED", LocalDateTime.now().minusDays(1), LocalDateTime.now())
                 ));
 
         mockMvc.perform(get("/api/registrations/me")
@@ -98,7 +98,7 @@ class RegistrationControllerTest {
     @Test
     void cancelRegistrationReturnsUpdatedRegistration() throws Exception {
         when(registrationService.cancelRegistration(eq(100L), nullable(AuthenticatedUser.class)))
-                .thenReturn(new RegistrationResponse(100L, 10L, 1L, "CANCELLED", LocalDateTime.now().minusHours(1), LocalDateTime.now()));
+                .thenReturn(new RegistrationResponse(100L, 10L, 1L, "Ali Hassan", "CANCELLED", LocalDateTime.now().minusHours(1), LocalDateTime.now()));
 
         mockMvc.perform(delete("/api/registrations/100")
                         .with(authentication(TestAuthenticationFactory.authentication())))

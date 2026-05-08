@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -77,5 +78,11 @@ public class AuthController {
                                                      @PathVariable("userId") Long userId) {
         authService.ensureSelfOrAdmin(principal, userId);
         return ResponseEntity.ok(authService.getUserRoles(userId));
+    }
+
+    @GetMapping("/internal/users/{userId}")
+    public ResponseEntity<UserResponse> getInternalUser(@RequestHeader(name = "X-Internal-Api-Key", required = false) String internalApiKey,
+                                                        @PathVariable("userId") Long userId) {
+        return ResponseEntity.ok(authService.getUserByIdInternal(internalApiKey, userId));
     }
 }

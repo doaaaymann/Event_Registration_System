@@ -7,6 +7,7 @@ public class RegistrationResponse {
     private final Long id;
     private final Long eventId;
     private final Long participantId;
+    private final String participantName;
     private final String status;
     private final LocalDateTime registeredAt;
     private final LocalDateTime cancelledAt;
@@ -14,12 +15,14 @@ public class RegistrationResponse {
     public RegistrationResponse(Long id,
                                 Long eventId,
                                 Long participantId,
+                                String participantName,
                                 String status,
                                 LocalDateTime registeredAt,
                                 LocalDateTime cancelledAt) {
         this.id = id;
         this.eventId = eventId;
         this.participantId = participantId;
+        this.participantName = participantName;
         this.status = status;
         this.registeredAt = registeredAt;
         this.cancelledAt = cancelledAt;
@@ -35,6 +38,10 @@ public class RegistrationResponse {
 
     public Long getParticipantId() {
         return participantId;
+    }
+
+    public String getParticipantName() {
+        return participantName;
     }
 
     public String getStatus() {
