@@ -6,6 +6,7 @@ This folder contains the main project documentation that is still relevant to th
 
 - [`architecture/`](./architecture)
   - Contains architecture-focused assets such as the professional ERD.
+  - Includes OCL business-rule documentation for the implemented system.
 - [`srs/`](./srs)
   - Intended for the Software Requirements Specification document and supporting generation assets.
 

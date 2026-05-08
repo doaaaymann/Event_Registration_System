@@ -146,6 +146,8 @@ The cleaned documentation folder is organized as follows:
   - professional vector ERD image
 - [`docs/architecture/Event_Registration_System_ERD.md`](./docs/architecture/Event_Registration_System_ERD.md)
   - ERD notes and Mermaid source
+- [`docs/architecture/OCL_Constraints.md`](./docs/architecture/OCL_Constraints.md)
+  - formal OCL expressions for core business rules enforced by the implementation
 
 ## Database Model
 

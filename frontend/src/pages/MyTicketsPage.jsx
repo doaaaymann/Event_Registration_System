@@ -3,8 +3,21 @@ import { useAppData } from '../context/AppDataContext';
 import { formatDateTime, isConfirmedRegistration } from '../lib/utils';
 
 export default function MyTicketsPage() {
-  const { registrations, cancelRegistration } = useAppData();
+  const { events, registrations, cancelRegistration } = useAppData();
   const confirmedTickets = registrations.filter(isConfirmedRegistration);
+
+  function getTicketEventTitle(ticket) {
+    if (ticket.eventTitle) {
+      return ticket.eventTitle;
+    }
+
+    if (ticket.event?.title) {
+      return ticket.event.title;
+    }
+
+    const matchedEvent = events.find((event) => String(event.id) === String(ticket.eventId));
+    return matchedEvent?.title || `Event #${ticket.eventId}`;
+  }
 
   return (
     <div className="space-y-8">
@@ -28,7 +41,7 @@ export default function MyTicketsPage() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Confirmed ticket</p>
                   <h2 className="mt-3 text-2xl font-semibold text-slate-950">
-                    {ticket.eventTitle || ticket.event?.title || `Event #${ticket.eventId}`}
+                    {getTicketEventTitle(ticket)}
                   </h2>
                   <p className="mt-3 text-sm text-slate-600">
                     Registered on {formatDateTime(ticket.createdAt || ticket.updatedAt || ticket.registeredAt)}
