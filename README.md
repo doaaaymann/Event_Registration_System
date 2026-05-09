@@ -136,7 +136,7 @@ Event_Registration_System-/
 
 
 - [`docs/architecture/OCL_Constraints.md`](./docs/architecture/OCL_Constraints.md)
-  - formal OCL expressions for core business rules enforced by the implementation
+  - OCL-style business constraints with matching backend implementation references
 - [`docs/architecture/Design_Patterns.md`](./docs/architecture/Design_Patterns.md)
   - explanation of the design patterns used in the project with implementation references
 
