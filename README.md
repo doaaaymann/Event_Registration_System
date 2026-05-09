@@ -133,10 +133,8 @@ Event_Registration_System-/
 
 ### ERD
 
-- [`docs/architecture/Event_Registration_System_ERD.svg`](./docs/architecture/Event_Registration_System_ERD.svg)
-  - professional vector ERD image
-- [`docs/architecture/Event_Registration_System_ERD.md`](./docs/architecture/Event_Registration_System_ERD.md)
-  - ERD notes and Mermaid source
+
+
 - [`docs/architecture/OCL_Constraints.md`](./docs/architecture/OCL_Constraints.md)
   - formal OCL expressions for core business rules enforced by the implementation
 - [`docs/architecture/Design_Patterns.md`](./docs/architecture/Design_Patterns.md)
