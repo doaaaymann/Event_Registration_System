@@ -129,48 +129,6 @@ Event_Registration_System-/
 └── pom.xml
 ```
 
-
-
-### ERD
-
-
-
-- [`docs/architecture/OCL_Constraints.md`](./docs/architecture/OCL_Constraints.md)
-  - OCL-style business constraints with matching backend implementation references
-- [`docs/architecture/Design_Patterns.md`](./docs/architecture/Design_Patterns.md)
-  - explanation of the design patterns used in the project with implementation references
-
-### Cloud Deployment
-
-- [`cloud/README.md`](./cloud/README.md)
-  - explains Docker Compose deployment on a cloud VM and Kubernetes deployment
-- [`cloud/kubernetes/event-registration-system.yml`](./cloud/kubernetes/event-registration-system.yml)
-  - Kubernetes manifest for PostgreSQL, Config Server, Eureka Server, API Gateway, and the backend domain services
-
-## Database Model
-
-The system stores data across separate service databases.
-
-### Auth domain
-
-- `users`
-- `roles`
-- `user_roles`
-
-### Event domain
-
-- `events`
-
-### Registration domain
-
-- `registrations`
-
-### Notification domain
-
-- `notifications`
-
-Because the system is microservices-based, some relationships are logical cross-service relationships enforced in application logic instead of direct foreign keys across one shared database.
-
 ## Core Business Rules
 
 - Public self-registration is limited to `PARTICIPANT` accounts
@@ -201,11 +159,3 @@ The main API areas exposed through the gateway are:
 - `/api/events`
 - `/api/registrations`
 - `/api/notifications`
-
-## Testing and Work Reports
-
-The `tasks/` folder contains working notes, testing flows, and service-specific reports created during development. These files are helpful for internal project work but are separate from the cleaned long-term documentation under `docs/`.
-
-## Current State
-
-This repository contains the implemented backend and frontend for the Event Registration System, plus supporting architecture documentation. It is suitable as a course project, a portfolio-quality microservices example, and a base for future additions such as email delivery, analytics, payment-based tickets, or check-in workflows.
