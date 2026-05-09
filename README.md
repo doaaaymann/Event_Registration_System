@@ -129,18 +129,7 @@ Event_Registration_System-/
 └── pom.xml
 ```
 
-## Documentation
 
-The cleaned documentation folder is organized as follows:
-
-- [`docs/README.md`](./docs/README.md)
-  - documentation index
-- [`docs/architecture/`](./docs/architecture)
-  - architecture artifacts such as the ERD, OCL constraints, and design-pattern documentation
-- [`docs/srs/`](./docs/srs)
-  - SRS-related deliverables and generation assets
-- [`cloud/`](./cloud)
-  - cloud deployment guide and Kubernetes manifests for running the microservices on cloud-style infrastructure
 
 ### ERD
 
