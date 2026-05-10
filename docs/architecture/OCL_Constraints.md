@@ -1,267 +1,649 @@
 # OCL Constraints
 
-This document records the main business rules of the Event Registration System in an OCL-style form and shows where each rule is enforced in the code.
+This file shows the project constraints exactly the way they now appear in the codebase.
 
-The project does not use a separate OCL runtime engine. Instead, the constraints now appear in two places inside the codebase:
+The project does not use a separate OCL runtime engine. Instead, each rule is represented in two code-level forms:
 
-- as formal OCL invariant strings in dedicated `ocl` classes
-- as executable validation logic used by the backend services
+- an OCL invariant string inside a dedicated `ocl` class
+- a Java validation method that enforces the same rule at runtime
 
-That keeps the rules visible for analysis and grading while still making them practical in implementation.
+Because of that, this document now uses the exact project snippets instead of only paraphrasing the rules.
 
-## How To Read This File
+## 1. Public Registration Is Limited To `PARTICIPANT`
 
-Each rule includes:
+### OCL invariant in code
 
-- a short explanation of the business meaning
-- an OCL-style constraint
-- the OCL class where the invariant is stored
-- the backend file where the rule is enforced
+File:
+- [AuthOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/ocl/AuthOcl.java:1)
 
-The expressions are written in a readable, project-focused way so they stay close to the actual domain model.
-
-## 1. Public Registration Is Limited To Participants
-
-Only participant accounts can be created through public self-registration.
-
-```ocl
-context RegisterRequest
-inv PublicRegistrationParticipantOnly:
-    self.role = RoleName::PARTICIPANT
+```java
+public static final String PUBLIC_REGISTRATION_PARTICIPANT_ONLY =
+        "context RegisterRequest inv PublicRegistrationParticipantOnly: self.role = RoleName::PARTICIPANT";
 ```
 
-Implemented in:
+### Runtime enforcement in code
 
-- [AuthOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/ocl/AuthOcl.java:10)
-- [AuthService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/service/AuthService.java:54)
+File:
+- [AuthOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/ocl/AuthOcl.java:1)
 
-The `register(...)` method rejects any public registration request whose role is not `PARTICIPANT`.
-
-## 2. Only Admins Can Create Managed Accounts
-
-Organizer and participant accounts created by management must be created by an admin.
-
-```ocl
-context AuthUserPrincipal
-inv OnlyAdminCreatesManagedUsers:
-    self.roles->includes('ADMIN')
+```java
+public static void requirePublicRegistrationParticipantOnly(RoleName role) {
+    if (role != RoleName.PARTICIPANT) {
+        throw new BadRequestException("Public registration only allows PARTICIPANT accounts");
+    }
+}
 ```
 
-Implemented in:
+### Used by service
 
-- [AuthOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/ocl/AuthOcl.java:13)
-- [AuthService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/service/AuthService.java:77)
-- [AuthService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/service/AuthService.java:164)
+File:
+- [AuthService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/service/AuthService.java:1)
 
-The `createManagedUser(...)` method calls `ensureAdmin(...)` before creating the account.
-
-## 3. Every Event Must Have At Least One Organizer
-
-An event cannot be saved without organizer ownership.
-
-```ocl
-context Event
-inv EventMustHaveOrganizer:
-    self.organizerIds->size() >= 1
+```java
+public UserResponse register(RegisterRequest request) {
+    AuthOcl.requirePublicRegistrationParticipantOnly(request.getRole());
+    return createUser(request.getFullName(), request.getEmail(), request.getPassword(), request.getRole());
+}
 ```
 
-Implemented in:
+## 2. Only `ADMIN` Can Create Managed Users
 
-- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:13)
-- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:304)
+### OCL invariant in code
 
-The `normalizeOrganizerIds(...)` method removes invalid values and throws an error if no organizer remains.
-
-## 4. Event End Time Must Be After Start Time
-
-An event schedule is valid only when the end time is later than the start time.
-
-```ocl
-context Event
-inv EndAfterStart:
-    self.endTime > self.startTime
+```java
+public static final String ONLY_ADMIN_CREATES_MANAGED_USERS =
+        "context AuthUserPrincipal inv OnlyAdminCreatesManagedUsers: self.roles->includes('ADMIN')";
 ```
 
-Implemented in:
+### Runtime enforcement in code
 
-- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:16)
-- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:206)
+File:
+- [AuthOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/ocl/AuthOcl.java:1)
 
-The `validateSchedule(...)` method checks this rule during creation, update, and rescheduling.
-
-## 5. Only Owners Or Admins Can Manage Event Changes
-
-Updating, cancelling, or rescheduling an event is restricted to its assigned organizer scope or an admin.
-
-```ocl
-context Event
-inv EventManagedByOwnerOrAdmin:
-    actingUser.roles->includes('ADMIN') or
-    self.organizerIds->includes(actingUser.id)
+```java
+public static void requireAdminForManagedUserCreation(AuthUserPrincipal principal) {
+    if (principal == null || principal.getUserId() == null
+            || principal.getRoles() == null || !principal.getRoles().contains("ADMIN")) {
+        throw new AccessDeniedException("Access is denied");
+    }
+}
 ```
 
-Implemented in:
+### Used by service
 
-- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:19)
-- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:96)
-- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:113)
-- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:126)
-- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:165)
-- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:188)
-
-The service checks organizer ownership against the authenticated user, while admins are allowed to bypass the ownership check.
-
-## 6. Cancelled Events Cannot Be Modified As Active Events
-
-Once an event is cancelled, it cannot be edited like an active event.
-
-```ocl
-context Event
-inv CancelledEventNotEditable:
-    self.status = EventStatus::CANCELLED implies self.isEditable = false
+```java
+public UserResponse createManagedUser(AuthUserPrincipal principal, CreateManagedUserRequest request) {
+    AuthOcl.requireAdminForManagedUserCreation(principal);
+    if (request.getRole() == RoleName.ADMIN) {
+        throw new BadRequestException("Use the seeded admin account for ADMIN access");
+    }
+    return createUser(request.getFullName(), request.getEmail(), request.getPassword(), request.getRole());
+}
 ```
 
-Implemented in:
+## 3. User Data Is Visible Only To The Same User Or `ADMIN`
 
-- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:22)
-- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:200)
+### OCL invariant in code
 
-The `ensureNotCancelled(...)` method is used before update, reschedule, and organizer reassignment operations.
+File:
+- [AuthOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/ocl/AuthOcl.java:1)
 
-## 7. A Participant Cannot Hold Duplicate Active Registrations For The Same Event
-
-The same participant should not have more than one active registration for a single event.
-
-```ocl
-context Registration
-inv NoDuplicateActiveRegistration:
-    Registration.allInstances()
-        ->select(r | r.eventId = self.eventId and
-                     r.participantId = self.participantId and
-                     r.status = RegistrationStatus::REGISTERED)
-        ->size() <= 1
+```java
+public static final String USER_VISIBLE_TO_SELF_OR_ADMIN =
+        "context User inv UserVisibleToSelfOrAdmin: actingUser.roles->includes('ADMIN') or actingUser.id = self.id";
 ```
 
-Implemented in:
+### Runtime enforcement in code
 
-- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:12)
-- [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:65)
+File:
+- [AuthOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/ocl/AuthOcl.java:1)
 
-Before saving a new registration, the service checks whether a `REGISTERED` record already exists for the same participant and event.
-
-## 8. Only Scheduled Or Rescheduled Events Can Accept Registrations
-
-Registrations are allowed only for events that are in a valid open state.
-
-```ocl
-context Event
-inv RegistrationAllowedOnlyForOpenStates:
-    self.status = EventStatus::SCHEDULED or
-    self.status = EventStatus::RESCHEDULED
+```java
+public static void requireSelfOrAdmin(AuthUserPrincipal principal, Long userId) {
+    if (principal == null || principal.getUserId() == null) {
+        throw new AccessDeniedException("Authentication is required");
+    }
+    boolean isAdmin = principal.getRoles() != null && principal.getRoles().contains("ADMIN");
+    boolean isSelf = principal.getUserId().equals(userId);
+    if (!isAdmin && !isSelf) {
+        throw new AccessDeniedException("Access is denied");
+    }
+}
 ```
 
-Implemented in:
+### Used by service
 
-- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:18)
-- [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:168)
-- [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:174)
+File:
+- [AuthService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/service/AuthService.java:1)
 
-The registration flow validates both the event details and the computed availability before allowing a participant to register.
-
-## 9. Only Participants Can Register For Events
-
-Event registration is reserved for users with the participant role.
-
-```ocl
-context AuthenticatedUser
-inv OnlyParticipantCanRegister:
-    self.roles->includes('PARTICIPANT')
+```java
+public void ensureSelfOrAdmin(AuthUserPrincipal principal, Long userId) {
+    AuthOcl.requireSelfOrAdmin(principal, userId);
+}
 ```
 
-Implemented in:
+## 4. Every Event Must Have At Least One Organizer
 
-- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:9)
-- [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:146)
+### OCL invariant in code
 
-The service blocks registration attempts from non-participant accounts.
+File:
+- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:1)
 
-## 10. Registration Data Can Only Be Accessed By Its Owner
-
-A registration record may be viewed or cancelled only by the participant who owns it.
-
-```ocl
-context Registration
-inv RegistrationOwnerOnly:
-    actingUser.id = self.participantId
+```java
+public static final String EVENT_MUST_HAVE_ORGANIZER =
+        "context Event inv EventMustHaveOrganizer: self.organizerIds->size() >= 1";
 ```
 
-Implemented in:
+### Runtime enforcement in code
 
-- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:15)
-- [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:152)
+File:
+- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:1)
 
-The `enforceOwnership(...)` method is used before reading or cancelling a registration.
-
-## 11. Event Participant Lists Are Restricted To Event Organizers Or Admins
-
-Only an assigned organizer for the event, or an admin, can inspect participant lists.
-
-```ocl
-context Event
-inv ParticipantListVisibleToOrganizerOrAdmin:
-    actingUser.roles->includes('ADMIN') or
-    (actingUser.roles->includes('ORGANIZER') and
-     self.organizerIds->includes(actingUser.id))
+```java
+private List<Long> normalizeOrganizerIds(List<Long> organizerIds) {
+    List<Long> normalized = organizerIds == null ? List.of() : organizerIds.stream()
+            .filter(id -> id != null && id > 0)
+            .distinct()
+            .toList();
+    if (normalized.isEmpty()) {
+        throw new BadRequestException("At least one organizer is required");
+    }
+    return normalized;
+}
 ```
 
-Implemented in:
+## 5. Event End Time Must Be After Start Time
 
-- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:21)
-- [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:158)
+### OCL invariant in code
 
-The participant query flow uses `enforceParticipantTrackingAccess(...)` to guard access.
+File:
+- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:1)
 
-## 12. Notifications Are Readable Only By Their Owner Or An Admin
-
-A user should only see or mark notifications that belong to them, unless they are an admin.
-
-```ocl
-context Notification
-inv NotificationReadableByOwnerOrAdmin:
-    actingUser.roles->includes('ADMIN') or
-    actingUser.id = self.userId
+```java
+public static final String END_AFTER_START =
+        "context Event inv EndAfterStart: self.endTime > self.startTime";
 ```
 
-Implemented in:
+### Runtime enforcement in code
 
-- [NotificationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/ocl/NotificationOcl.java:9)
-- [NotificationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/service/NotificationService.java:127)
+File:
+- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:1)
 
-This rule is applied both when listing notifications for a user and when marking a notification as read.
-
-## 13. Creating Notifications For Other Users Is An Admin Action
-
-Regular users may create notifications only for themselves. Creating notifications for another user is an admin-only action.
-
-```ocl
-context Notification
-inv NotificationCreatePermission:
-    actingUser.roles->includes('ADMIN') or
-    actingUser.id = self.userId
+```java
+public static void requireEndAfterStart(LocalDateTime startTime, LocalDateTime endTime) {
+    if (!endTime.isAfter(startTime)) {
+        throw new BadRequestException("endTime must be after startTime");
+    }
+}
 ```
 
-Implemented in:
+### Used by service
 
-- [NotificationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/ocl/NotificationOcl.java:12)
-- [NotificationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/service/NotificationService.java:117)
+File:
+- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:1)
 
-The `enforceCreatePermission(...)` method prevents cross-user notification creation unless the caller is an admin.
+```java
+public CreateEventResponse createEvent(AuthUserPrincipal principal, CreateEventRequest request) {
+    EventOcl.requireOrganizerOrAdmin(principal);
+    List<Long> organizerIds = normalizeOrganizerIds(request.getOrganizerIds());
+    EventOcl.requirePrincipalOwnsOrganizerScope(principal, organizerIds);
+    EventOcl.requireEndAfterStart(request.getStartTime(), request.getEndTime());
+
+    Event event = new Event();
+    event.setTitle(request.getTitle().trim());
+    event.setDescription(request.getDescription());
+    event.setLocation(request.getLocation().trim());
+    event.setStartTime(request.getStartTime());
+    event.setEndTime(request.getEndTime());
+    event.setMaxSeats(request.getMaxSeats());
+    event.setOrganizerIds(organizerIds);
+    event.setStatus(EventStatus.SCHEDULED);
+
+    Event savedEvent = eventRepository.save(event);
+    return new CreateEventResponse(
+            savedEvent.getId(),
+            savedEvent.getTitle(),
+            savedEvent.getStatus(),
+            savedEvent.getMaxSeats()
+    );
+}
+```
+
+## 6. Only Event Owners Or `ADMIN` Can Manage Event Changes
+
+### OCL invariant in code
+
+File:
+- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:1)
+
+```java
+public static final String EVENT_MANAGED_BY_OWNER_OR_ADMIN =
+        "context Event inv EventManagedByOwnerOrAdmin: actingUser.roles->includes('ADMIN') or self.organizerIds->includes(actingUser.id)";
+```
+
+### Runtime enforcement in code
+
+File:
+- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:1)
+
+```java
+public static void requireEventOwnerOrAdmin(AuthUserPrincipal principal, Event event) {
+    requireOrganizerOrAdmin(principal);
+    requirePrincipalOwnsOrganizerScope(principal, event.getOrganizerIds());
+}
+```
+
+```java
+public static void requirePrincipalOwnsOrganizerScope(AuthUserPrincipal principal, List<Long> organizerIds) {
+    if (principal == null || principal.getUserId() == null || principal.getRoles() == null) {
+        throw new AccessDeniedException("Access is denied");
+    }
+    if (principal.getRoles().contains("ADMIN")) {
+        return;
+    }
+    if (organizerIds == null || organizerIds.isEmpty() || organizerIds.stream().anyMatch(id -> !principal.getUserId().equals(id))) {
+        throw new AccessDeniedException("Access is denied");
+    }
+}
+```
+
+### Used by service
+
+File:
+- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:1)
+
+```java
+public EventResponse updateEvent(AuthUserPrincipal principal, Long eventId, UpdateEventRequest request) {
+    Event event = getEventEntity(eventId);
+    EventOcl.requireEventOwnerOrAdmin(principal, event);
+    EventOcl.requireNotCancelled(event);
+    EventOcl.requireEndAfterStart(request.getStartTime(), request.getEndTime());
+
+    event.setTitle(request.getTitle().trim());
+    event.setDescription(request.getDescription());
+    event.setLocation(request.getLocation().trim());
+    event.setStartTime(request.getStartTime());
+    event.setEndTime(request.getEndTime());
+    event.setMaxSeats(request.getMaxSeats());
+
+    return toEventResponse(eventRepository.save(event));
+}
+```
+
+## 7. Cancelled Events Cannot Be Modified
+
+### OCL invariant in code
+
+File:
+- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:1)
+
+```java
+public static final String CANCELLED_EVENT_NOT_EDITABLE =
+        "context Event inv CancelledEventNotEditable: self.status = EventStatus::CANCELLED implies self.isEditable = false";
+```
+
+### Runtime enforcement in code
+
+File:
+- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:1)
+
+```java
+public static void requireNotCancelled(Event event) {
+    if (event.getStatus() == EventStatus.CANCELLED) {
+        throw new BadRequestException("Cancelled events cannot be modified");
+    }
+}
+```
+
+### Used by service
+
+File:
+- [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:1)
+
+```java
+public EventResponse rescheduleEvent(AuthUserPrincipal principal, Long eventId, RescheduleEventRequest request) {
+    Event event = getEventEntity(eventId);
+    EventOcl.requireEventOwnerOrAdmin(principal, event);
+    EventOcl.requireNotCancelled(event);
+    EventOcl.requireEndAfterStart(request.getStartTime(), request.getEndTime());
+
+    event.setStartTime(request.getStartTime());
+    event.setEndTime(request.getEndTime());
+    event.setStatus(EventStatus.RESCHEDULED);
+
+    Event savedEvent = eventRepository.save(event);
+    sendEventRescheduledNotifications(savedEvent, principal);
+    return toEventResponse(savedEvent);
+}
+```
+
+## 8. No Duplicate Active Registration For The Same Participant And Event
+
+### OCL-style rule represented by the implementation
+
+File:
+- [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:1)
+
+### Runtime enforcement in code
+
+```java
+public RegistrationResponse createRegistration(AuthenticatedUser authenticatedUser, CreateRegistrationRequest request) {
+    RegistrationOcl.requireAuthenticatedUser(authenticatedUser);
+    RegistrationOcl.requireParticipantRole(authenticatedUser);
+    if (request == null || request.getEventId() == null) {
+        throw new BadRequestException("eventId is required");
+    }
+    return eventLockManager.executeWithLock(request.getEventId(),
+            () -> {
+                Long eventId = request.getEventId();
+                if (registrationRepository.existsByEventIdAndParticipantIdAndStatus(
+                        eventId, authenticatedUser.getUserId(), RegistrationStatus.REGISTERED)) {
+                    throw new ConflictException("User is already registered for this event");
+                }
+
+                EventDetailsResponse event = fetchEvent(eventId);
+                validateEventStatus(event);
+
+                EventAvailabilityResponse availability = fetchAvailability(eventId);
+                validateAvailability(availability);
+
+                Registration registration = new Registration();
+                registration.setEventId(eventId);
+                registration.setParticipantId(authenticatedUser.getUserId());
+                registration.setStatus(RegistrationStatus.REGISTERED);
+                registration.setRegisteredAt(LocalDateTime.now());
+                registration.setCancelledAt(null);
+
+                Registration savedRegistration = registrationRepository.save(registration);
+                sendCreatedNotification(savedRegistration, event);
+                return toResponse(savedRegistration);
+            });
+}
+```
+
+## 9. Only `SCHEDULED` Or `RESCHEDULED` Events Accept Registration
+
+### OCL invariant in code
+
+File:
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:1)
+
+```java
+public static final String REGISTRATION_ALLOWED_ONLY_FOR_OPEN_STATES =
+        "context Event inv RegistrationAllowedOnlyForOpenStates: self.status = EventStatus::SCHEDULED or self.status = EventStatus::RESCHEDULED";
+```
+
+### Runtime enforcement in code
+
+File:
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:1)
+
+```java
+public static void requireRegistrableStatus(EventDetailsResponse event) {
+    if (!isRegistrableStatus(event.getStatus())) {
+        throw new BadRequestException("Only SCHEDULED or RESCHEDULED events can accept registrations");
+    }
+}
+```
+
+```java
+public static void requireAvailableSeats(EventAvailabilityResponse availability) {
+    if (!isRegistrableStatus(availability.getStatus())) {
+        throw new BadRequestException("Only SCHEDULED or RESCHEDULED events can accept registrations");
+    }
+    if (Boolean.FALSE.equals(availability.getRegistrationOpen())) {
+        throw new BadRequestException("Registration is closed for this event");
+    }
+    if (availability.getAvailableSeats() == null || availability.getAvailableSeats() <= 0) {
+        throw new BadRequestException("No seats available for this event");
+    }
+}
+```
+
+### Used by service
+
+File:
+- [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:1)
+
+```java
+private void validateEventStatus(EventDetailsResponse event) {
+    RegistrationOcl.requireRegistrableStatus(event);
+}
+
+private void validateAvailability(EventAvailabilityResponse availability) {
+    RegistrationOcl.requireAvailableSeats(availability);
+}
+```
+
+## 10. Only `PARTICIPANT` Users Can Register For Events
+
+### OCL invariant in code
+
+File:
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:1)
+
+```java
+public static final String ONLY_PARTICIPANT_CAN_REGISTER =
+        "context AuthenticatedUser inv OnlyParticipantCanRegister: self.roles->includes('PARTICIPANT')";
+```
+
+### Runtime enforcement in code
+
+File:
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:1)
+
+```java
+public static void requireParticipantRole(AuthenticatedUser authenticatedUser) {
+    if (!authenticatedUser.hasRole("PARTICIPANT")) {
+        throw new ForbiddenOperationException("Only PARTICIPANT users can register for events");
+    }
+}
+```
+
+### Used by service
+
+File:
+- [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:1)
+
+```java
+private void requireParticipantRole(AuthenticatedUser authenticatedUser) {
+    RegistrationOcl.requireParticipantRole(authenticatedUser);
+}
+```
+
+## 11. Registration Owner Only
+
+### OCL invariant in code
+
+File:
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:1)
+
+```java
+public static final String REGISTRATION_OWNER_ONLY =
+        "context Registration inv RegistrationOwnerOnly: actingUser.id = self.participantId";
+```
+
+### Runtime enforcement in code
+
+File:
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:1)
+
+```java
+public static void requireOwnership(Registration registration, AuthenticatedUser authenticatedUser) {
+    if (!registration.getParticipantId().equals(authenticatedUser.getUserId())) {
+        throw new ForbiddenOperationException("Only the registration owner can perform this action");
+    }
+}
+```
+
+### Used by service
+
+File:
+- [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:1)
+
+```java
+public RegistrationResponse getRegistration(Long registrationId, AuthenticatedUser authenticatedUser) {
+    RegistrationOcl.requireAuthenticatedUser(authenticatedUser);
+    Registration registration = registrationRepository.findById(registrationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Registration not found"));
+    RegistrationOcl.requireOwnership(registration, authenticatedUser);
+    return toResponse(registration);
+}
+```
+
+## 12. Event Participant Lists Are Restricted To Event Organizers Or `ADMIN`
+
+### OCL invariant in code
+
+File:
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:1)
+
+```java
+public static final String PARTICIPANT_LIST_VISIBLE_TO_ORGANIZER_OR_ADMIN =
+        "context Event inv ParticipantListVisibleToOrganizerOrAdmin: actingUser.roles->includes('ADMIN') or (actingUser.roles->includes('ORGANIZER') and self.organizerIds->includes(actingUser.id))";
+```
+
+### Runtime enforcement in code
+
+File:
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:1)
+
+```java
+public static void requireParticipantTrackingAccess(AuthenticatedUser authenticatedUser, EventDetailsResponse event) {
+    if (authenticatedUser.hasRole("ADMIN")) {
+        return;
+    }
+    if (authenticatedUser.hasRole("ORGANIZER") && event.getOrganizerIds().contains(authenticatedUser.getUserId())) {
+        return;
+    }
+    throw new ForbiddenOperationException("Only the event organizer or ADMIN can view event participants");
+}
+```
+
+### Used by service
+
+File:
+- [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:1)
+
+```java
+public List<RegistrationResponse> getEventRegistrations(Long eventId, AuthenticatedUser authenticatedUser) {
+    RegistrationOcl.requireAuthenticatedUser(authenticatedUser);
+    EventDetailsResponse event = fetchEvent(eventId);
+    RegistrationOcl.requireParticipantTrackingAccess(authenticatedUser, event);
+    List<Registration> registrations = registrationRepository.findAllByEventIdOrderByRegisteredAtAsc(eventId);
+    Map<Long, String> participantNames = getParticipantNames(registrations);
+    return registrations
+            .stream()
+            .map(registration -> toResponse(registration, participantNames.get(registration.getParticipantId())))
+            .toList();
+}
+```
+
+## 13. Notifications Are Readable Only By Their Owner Or `ADMIN`
+
+### OCL invariant in code
+
+File:
+- [NotificationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/ocl/NotificationOcl.java:1)
+
+```java
+public static final String NOTIFICATION_READABLE_BY_OWNER_OR_ADMIN =
+        "context Notification inv NotificationReadableByOwnerOrAdmin: actingUser.roles->includes('ADMIN') or actingUser.id = self.userId";
+```
+
+### Runtime enforcement in code
+
+File:
+- [NotificationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/ocl/NotificationOcl.java:1)
+
+```java
+public static void requireReadPermission(AuthenticatedUser authenticatedUser, Long targetUserId) {
+    if (authenticatedUser.hasRole("ADMIN")) {
+        return;
+    }
+    if (authenticatedUser.getUserId().equals(targetUserId)) {
+        return;
+    }
+    throw new ForbiddenOperationException("Only the notification owner or ADMIN can perform this action");
+}
+```
+
+### Used by service
+
+File:
+- [NotificationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/service/NotificationService.java:1)
+
+```java
+public List<NotificationResponse> getNotificationsByUserId(AuthenticatedUser authenticatedUser, Long userId) {
+    NotificationOcl.requireAuthenticatedUser(authenticatedUser);
+    NotificationOcl.requireReadPermission(authenticatedUser, userId);
+    return notificationRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
+            .map(this::toResponse)
+            .toList();
+}
+```
+
+## 14. Creating Notifications For Other Users Is An `ADMIN` Action
+
+### OCL invariant in code
+
+File:
+- [NotificationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/ocl/NotificationOcl.java:1)
+
+```java
+public static final String NOTIFICATION_CREATE_PERMISSION =
+        "context Notification inv NotificationCreatePermission: actingUser.roles->includes('ADMIN') or actingUser.id = self.userId";
+```
+
+### Runtime enforcement in code
+
+File:
+- [NotificationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/ocl/NotificationOcl.java:1)
+
+```java
+public static void requireCreatePermission(AuthenticatedUser authenticatedUser, Long targetUserId) {
+    if (authenticatedUser.hasRole("ADMIN")) {
+        return;
+    }
+    if (authenticatedUser.getUserId().equals(targetUserId)) {
+        return;
+    }
+    throw new ForbiddenOperationException("Only ADMIN can create notifications for other users");
+}
+```
+
+### Used by service
+
+File:
+- [NotificationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/service/NotificationService.java:1)
+
+```java
+public NotificationResponse createNotification(AuthenticatedUser authenticatedUser, CreateNotificationRequest request) {
+    NotificationOcl.requireAuthenticatedUser(authenticatedUser);
+    validateCreateRequest(request);
+    NotificationOcl.requireCreatePermission(authenticatedUser, request.getUserId());
+    Notification notification = buildNotification(
+            request.getUserId(),
+            request.getType(),
+            request.getTitle(),
+            request.getMessage()
+    );
+    return toResponse(notificationRepository.save(notification));
+}
+```
 
 ## Summary
 
-The OCL work in this project now exists in two complementary forms:
+The OCL constraints are now represented directly in the source code itself.
 
-- formalized business constraints written here and stored inside dedicated `ocl` classes
-- actual enforcement in the backend service layer through executable validator methods
+You can point to:
 
-That structure fits the project well. The rules stay readable for documentation and grading, while the application still enforces them directly in production code.
+- the dedicated OCL classes:
+  - [AuthOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/ocl/AuthOcl.java:1)
+  - [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:1)
+  - [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:1)
+  - [NotificationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/ocl/NotificationOcl.java:1)
+
+- the service-layer validation calls that enforce the same rules at runtime
+
+So the project now has OCL-style constraints both in documentation and inside the codebase itself.
