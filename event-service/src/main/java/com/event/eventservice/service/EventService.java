@@ -16,6 +16,7 @@ import com.event.eventservice.entity.Event;
 import com.event.eventservice.entity.EventStatus;
 import com.event.eventservice.exception.BadRequestException;
 import com.event.eventservice.exception.ResourceNotFoundException;
+import com.event.eventservice.ocl.EventOcl;
 import com.event.eventservice.repository.EventRepository;
 import com.event.eventservice.security.AuthUserPrincipal;
 import org.springframework.security.access.AccessDeniedException;
@@ -45,10 +46,10 @@ public class EventService {
 
     @Transactional
     public CreateEventResponse createEvent(AuthUserPrincipal principal, CreateEventRequest request) {
-        ensureOrganizerOrAdmin(principal);
+        EventOcl.requireOrganizerOrAdmin(principal);
         List<Long> organizerIds = normalizeOrganizerIds(request.getOrganizerIds());
-        ensurePrincipalOwnsOrganizerScope(principal, organizerIds);
-        validateSchedule(request.getStartTime(), request.getEndTime());
+        EventOcl.requirePrincipalOwnsOrganizerScope(principal, organizerIds);
+        EventOcl.requireEndAfterStart(request.getStartTime(), request.getEndTime());
 
         Event event = new Event();
         event.setTitle(request.getTitle().trim());
@@ -95,9 +96,9 @@ public class EventService {
     @Transactional
     public EventResponse updateEvent(AuthUserPrincipal principal, Long eventId, UpdateEventRequest request) {
         Event event = getEventEntity(eventId);
-        ensureEventOwnerOrAdmin(principal, event);
-        ensureNotCancelled(event);
-        validateSchedule(request.getStartTime(), request.getEndTime());
+        EventOcl.requireEventOwnerOrAdmin(principal, event);
+        EventOcl.requireNotCancelled(event);
+        EventOcl.requireEndAfterStart(request.getStartTime(), request.getEndTime());
 
         event.setTitle(request.getTitle().trim());
         event.setDescription(request.getDescription());
@@ -112,7 +113,7 @@ public class EventService {
     @Transactional
     public EventResponse cancelEvent(AuthUserPrincipal principal, Long eventId) {
         Event event = getEventEntity(eventId);
-        ensureEventOwnerOrAdmin(principal, event);
+        EventOcl.requireEventOwnerOrAdmin(principal, event);
         if (event.getStatus() == EventStatus.CANCELLED) {
             throw new BadRequestException("Event is already cancelled");
         }
@@ -125,9 +126,9 @@ public class EventService {
     @Transactional
     public EventResponse rescheduleEvent(AuthUserPrincipal principal, Long eventId, RescheduleEventRequest request) {
         Event event = getEventEntity(eventId);
-        ensureEventOwnerOrAdmin(principal, event);
-        ensureNotCancelled(event);
-        validateSchedule(request.getStartTime(), request.getEndTime());
+        EventOcl.requireEventOwnerOrAdmin(principal, event);
+        EventOcl.requireNotCancelled(event);
+        EventOcl.requireEndAfterStart(request.getStartTime(), request.getEndTime());
 
         event.setStartTime(request.getStartTime());
         event.setEndTime(request.getEndTime());
@@ -140,9 +141,9 @@ public class EventService {
 
     @Transactional
     public EventResponse assignOrganizer(AuthUserPrincipal principal, Long eventId, AssignOrganizerRequest request) {
-        ensureAdmin(principal);
+        EventOcl.requireAdmin(principal);
         Event event = getEventEntity(eventId);
-        ensureNotCancelled(event);
+        EventOcl.requireNotCancelled(event);
         event.setOrganizerIds(normalizeOrganizerIds(request.getOrganizerIds()));
         return toEventResponse(eventRepository.save(event));
     }
@@ -163,50 +164,32 @@ public class EventService {
     }
 
     public void ensureOrganizerOwnerOrAdmin(AuthUserPrincipal principal, List<Long> organizerIds) {
-        ensureOrganizerOrAdmin(principal);
-        ensurePrincipalOwnsOrganizerScope(principal, organizerIds);
+        EventOcl.requireOrganizerOrAdmin(principal);
+        EventOcl.requirePrincipalOwnsOrganizerScope(principal, organizerIds);
     }
 
     private void ensureEventOwnerOrAdmin(AuthUserPrincipal principal, Event event) {
-        ensureOrganizerOwnerOrAdmin(principal, event.getOrganizerIds());
+        EventOcl.requireEventOwnerOrAdmin(principal, event);
     }
 
     private void ensureAdmin(AuthUserPrincipal principal) {
-        if (principal == null || principal.getUserId() == null
-                || principal.getRoles() == null || !principal.getRoles().contains("ADMIN")) {
-            throw new AccessDeniedException("Access is denied");
-        }
+        EventOcl.requireAdmin(principal);
     }
 
     private void ensureOrganizerOrAdmin(AuthUserPrincipal principal) {
-        if (principal == null || principal.getRoles() == null || principal.getRoles().stream().noneMatch(role ->
-                "ADMIN".equals(role) || "ORGANIZER".equals(role))) {
-            throw new AccessDeniedException("Access is denied");
-        }
+        EventOcl.requireOrganizerOrAdmin(principal);
     }
 
     private void ensurePrincipalOwnsOrganizerScope(AuthUserPrincipal principal, List<Long> organizerIds) {
-        if (principal == null || principal.getUserId() == null || principal.getRoles() == null) {
-            throw new AccessDeniedException("Access is denied");
-        }
-        if (principal.getRoles().contains("ADMIN")) {
-            return;
-        }
-        if (organizerIds == null || organizerIds.isEmpty() || organizerIds.stream().anyMatch(id -> !principal.getUserId().equals(id))) {
-            throw new AccessDeniedException("Access is denied");
-        }
+        EventOcl.requirePrincipalOwnsOrganizerScope(principal, organizerIds);
     }
 
     private void ensureNotCancelled(Event event) {
-        if (event.getStatus() == EventStatus.CANCELLED) {
-            throw new BadRequestException("Cancelled events cannot be modified");
-        }
+        EventOcl.requireNotCancelled(event);
     }
 
     private void validateSchedule(java.time.LocalDateTime startTime, java.time.LocalDateTime endTime) {
-        if (!endTime.isAfter(startTime)) {
-            throw new BadRequestException("endTime must be after startTime");
-        }
+        EventOcl.requireEndAfterStart(startTime, endTime);
     }
 
     private Event getEventEntity(Long eventId) {

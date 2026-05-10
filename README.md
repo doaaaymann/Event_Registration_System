@@ -33,6 +33,11 @@ The system supports three main roles:
 - In-system notifications with read/unread state
 - Docker-friendly microservices setup
 
+## Study Guide
+
+- [`docs/README.md`](./docs/README.md)
+  - full study guide covering implementation, OCL, AOP, Docker, clean code, design patterns, microservices, frontend, likely viva questions, and FAQ
+
 ## Architecture Overview
 
 This project uses a microservices architecture with a React frontend and Spring Boot backend services.

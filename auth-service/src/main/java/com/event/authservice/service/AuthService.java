@@ -15,6 +15,7 @@ import com.event.authservice.entity.User;
 import com.event.authservice.entity.UserStatus;
 import com.event.authservice.exception.BadRequestException;
 import com.event.authservice.exception.ResourceNotFoundException;
+import com.event.authservice.ocl.AuthOcl;
 import com.event.authservice.repository.RoleRepository;
 import com.event.authservice.repository.UserRepository;
 import com.event.authservice.security.AuthUserPrincipal;
@@ -52,9 +53,7 @@ public class AuthService {
     @Transactional
     @AuditAction("REGISTER_USER")
     public UserResponse register(RegisterRequest request) {
-        if (request.getRole() != RoleName.PARTICIPANT) {
-            throw new BadRequestException("Public registration only allows PARTICIPANT accounts");
-        }
+        AuthOcl.requirePublicRegistrationParticipantOnly(request.getRole());
         return createUser(request.getFullName(), request.getEmail(), request.getPassword(), request.getRole());
     }
 
@@ -75,7 +74,7 @@ public class AuthService {
     @Transactional
     @AuditAction("CREATE_MANAGED_USER")
     public UserResponse createManagedUser(AuthUserPrincipal principal, CreateManagedUserRequest request) {
-        ensureAdmin(principal);
+        AuthOcl.requireAdminForManagedUserCreation(principal);
         if (request.getRole() == RoleName.ADMIN) {
             throw new BadRequestException("Use the seeded admin account for ADMIN access");
         }
@@ -151,21 +150,11 @@ public class AuthService {
     }
 
     public void ensureSelfOrAdmin(AuthUserPrincipal principal, Long userId) {
-        if (principal == null || principal.getUserId() == null) {
-            throw new AccessDeniedException("Authentication is required");
-        }
-        boolean isAdmin = principal.getRoles() != null && principal.getRoles().contains("ADMIN");
-        boolean isSelf = principal.getUserId().equals(userId);
-        if (!isAdmin && !isSelf) {
-            throw new AccessDeniedException("Access is denied");
-        }
+        AuthOcl.requireSelfOrAdmin(principal, userId);
     }
 
     private void ensureAdmin(AuthUserPrincipal principal) {
-        if (principal == null || principal.getUserId() == null
-                || principal.getRoles() == null || !principal.getRoles().contains("ADMIN")) {
-            throw new AccessDeniedException("Access is denied");
-        }
+        AuthOcl.requireAdminForManagedUserCreation(principal);
     }
 
     private void validateInternalApiKey(String internalApiKey) {

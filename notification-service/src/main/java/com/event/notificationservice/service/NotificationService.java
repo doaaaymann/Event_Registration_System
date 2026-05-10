@@ -8,6 +8,7 @@ import com.event.notificationservice.entity.Notification;
 import com.event.notificationservice.exception.BadRequestException;
 import com.event.notificationservice.exception.ForbiddenOperationException;
 import com.event.notificationservice.exception.ResourceNotFoundException;
+import com.event.notificationservice.ocl.NotificationOcl;
 import com.event.notificationservice.repository.NotificationRepository;
 import com.event.notificationservice.security.AuthenticatedUser;
 import org.springframework.stereotype.Service;
@@ -32,9 +33,9 @@ public class NotificationService {
 
     @Transactional
     public NotificationResponse createNotification(AuthenticatedUser authenticatedUser, CreateNotificationRequest request) {
-        requireAuthenticatedUser(authenticatedUser);
+        NotificationOcl.requireAuthenticatedUser(authenticatedUser);
         validateCreateRequest(request);
-        enforceCreatePermission(authenticatedUser, request.getUserId());
+        NotificationOcl.requireCreatePermission(authenticatedUser, request.getUserId());
         Notification notification = buildNotification(
                 request.getUserId(),
                 request.getType(),
@@ -46,8 +47,8 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public List<NotificationResponse> getNotificationsByUserId(AuthenticatedUser authenticatedUser, Long userId) {
-        requireAuthenticatedUser(authenticatedUser);
-        enforceReadPermission(authenticatedUser, userId);
+        NotificationOcl.requireAuthenticatedUser(authenticatedUser);
+        NotificationOcl.requireReadPermission(authenticatedUser, userId);
         return notificationRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -55,10 +56,10 @@ public class NotificationService {
 
     @Transactional
     public NotificationResponse markAsRead(AuthenticatedUser authenticatedUser, Long notificationId) {
-        requireAuthenticatedUser(authenticatedUser);
+        NotificationOcl.requireAuthenticatedUser(authenticatedUser);
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
-        enforceReadPermission(authenticatedUser, notification.getUserId());
+        NotificationOcl.requireReadPermission(authenticatedUser, notification.getUserId());
         if (!notification.isRead()) {
             notification.setRead(true);
             notification = notificationRepository.save(notification);
@@ -79,9 +80,7 @@ public class NotificationService {
     }
 
     private void requireAuthenticatedUser(AuthenticatedUser authenticatedUser) {
-        if (authenticatedUser == null || authenticatedUser.getUserId() == null) {
-            throw new ForbiddenOperationException("Authenticated user context is required");
-        }
+        NotificationOcl.requireAuthenticatedUser(authenticatedUser);
     }
 
     private void validateCreateRequest(CreateNotificationRequest request) {
@@ -115,23 +114,11 @@ public class NotificationService {
     }
 
     private void enforceCreatePermission(AuthenticatedUser authenticatedUser, Long targetUserId) {
-        if (authenticatedUser.hasRole("ADMIN")) {
-            return;
-        }
-        if (authenticatedUser.getUserId().equals(targetUserId)) {
-            return;
-        }
-        throw new ForbiddenOperationException("Only ADMIN can create notifications for other users");
+        NotificationOcl.requireCreatePermission(authenticatedUser, targetUserId);
     }
 
     private void enforceReadPermission(AuthenticatedUser authenticatedUser, Long targetUserId) {
-        if (authenticatedUser.hasRole("ADMIN")) {
-            return;
-        }
-        if (authenticatedUser.getUserId().equals(targetUserId)) {
-            return;
-        }
-        throw new ForbiddenOperationException("Only the notification owner or ADMIN can perform this action");
+        NotificationOcl.requireReadPermission(authenticatedUser, targetUserId);
     }
 
     private Set<Long> resolveRecipientIds(InternalNotificationTriggerRequest request) {

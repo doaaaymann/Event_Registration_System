@@ -15,6 +15,7 @@ import com.event.registrationservice.exception.ConflictException;
 import com.event.registrationservice.exception.DownstreamServiceException;
 import com.event.registrationservice.exception.ForbiddenOperationException;
 import com.event.registrationservice.exception.ResourceNotFoundException;
+import com.event.registrationservice.ocl.RegistrationOcl;
 import com.event.registrationservice.repository.RegistrationRepository;
 import com.event.registrationservice.security.AuthenticatedUser;
 import feign.FeignException;
@@ -54,8 +55,8 @@ public class RegistrationService {
 
     @Transactional
     public RegistrationResponse createRegistration(AuthenticatedUser authenticatedUser, CreateRegistrationRequest request) {
-        requireAuthenticatedUser(authenticatedUser);
-        requireParticipantRole(authenticatedUser);
+        RegistrationOcl.requireAuthenticatedUser(authenticatedUser);
+        RegistrationOcl.requireParticipantRole(authenticatedUser);
         if (request == null || request.getEventId() == null) {
             throw new BadRequestException("eventId is required");
         }
@@ -88,16 +89,16 @@ public class RegistrationService {
 
     @Transactional(readOnly = true)
     public RegistrationResponse getRegistration(Long registrationId, AuthenticatedUser authenticatedUser) {
-        requireAuthenticatedUser(authenticatedUser);
+        RegistrationOcl.requireAuthenticatedUser(authenticatedUser);
         Registration registration = registrationRepository.findById(registrationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Registration not found"));
-        enforceOwnership(registration, authenticatedUser);
+        RegistrationOcl.requireOwnership(registration, authenticatedUser);
         return toResponse(registration);
     }
 
     @Transactional(readOnly = true)
     public List<RegistrationResponse> getMyRegistrations(AuthenticatedUser authenticatedUser) {
-        requireAuthenticatedUser(authenticatedUser);
+        RegistrationOcl.requireAuthenticatedUser(authenticatedUser);
         return registrationRepository.findAllByParticipantIdOrderByRegisteredAtDesc(authenticatedUser.getUserId())
                 .stream()
                 .map(this::toResponse)
@@ -106,9 +107,9 @@ public class RegistrationService {
 
     @Transactional(readOnly = true)
     public List<RegistrationResponse> getEventRegistrations(Long eventId, AuthenticatedUser authenticatedUser) {
-        requireAuthenticatedUser(authenticatedUser);
+        RegistrationOcl.requireAuthenticatedUser(authenticatedUser);
         EventDetailsResponse event = fetchEvent(eventId);
-        enforceParticipantTrackingAccess(authenticatedUser, event);
+        RegistrationOcl.requireParticipantTrackingAccess(authenticatedUser, event);
         List<Registration> registrations = registrationRepository.findAllByEventIdOrderByRegisteredAtAsc(eventId);
         Map<Long, String> participantNames = getParticipantNames(registrations);
         return registrations
@@ -119,10 +120,10 @@ public class RegistrationService {
 
     @Transactional
     public RegistrationResponse cancelRegistration(Long registrationId, AuthenticatedUser authenticatedUser) {
-        requireAuthenticatedUser(authenticatedUser);
+        RegistrationOcl.requireAuthenticatedUser(authenticatedUser);
         Registration registration = registrationRepository.findById(registrationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Registration not found"));
-        enforceOwnership(registration, authenticatedUser);
+        RegistrationOcl.requireOwnership(registration, authenticatedUser);
 
         if (registration.getStatus() == RegistrationStatus.CANCELLED) {
             throw new BadRequestException("Registration is already cancelled");
@@ -138,49 +139,27 @@ public class RegistrationService {
     }
 
     private void requireAuthenticatedUser(AuthenticatedUser authenticatedUser) {
-        if (authenticatedUser == null || authenticatedUser.getUserId() == null) {
-            throw new ForbiddenOperationException("Authenticated user context is required");
-        }
+        RegistrationOcl.requireAuthenticatedUser(authenticatedUser);
     }
 
     private void requireParticipantRole(AuthenticatedUser authenticatedUser) {
-        if (!authenticatedUser.hasRole(PARTICIPANT_ROLE)) {
-            throw new ForbiddenOperationException("Only PARTICIPANT users can register for events");
-        }
+        RegistrationOcl.requireParticipantRole(authenticatedUser);
     }
 
     private void enforceOwnership(Registration registration, AuthenticatedUser authenticatedUser) {
-        if (!registration.getParticipantId().equals(authenticatedUser.getUserId())) {
-            throw new ForbiddenOperationException("Only the registration owner can perform this action");
-        }
+        RegistrationOcl.requireOwnership(registration, authenticatedUser);
     }
 
     private void enforceParticipantTrackingAccess(AuthenticatedUser authenticatedUser, EventDetailsResponse event) {
-        if (authenticatedUser.hasRole("ADMIN")) {
-            return;
-        }
-        if (authenticatedUser.hasRole("ORGANIZER") && event.getOrganizerIds().contains(authenticatedUser.getUserId())) {
-            return;
-        }
-        throw new ForbiddenOperationException("Only the event organizer or ADMIN can view event participants");
+        RegistrationOcl.requireParticipantTrackingAccess(authenticatedUser, event);
     }
 
     private void validateEventStatus(EventDetailsResponse event) {
-        if (!isRegistrableStatus(event.getStatus())) {
-            throw new BadRequestException("Only SCHEDULED or RESCHEDULED events can accept registrations");
-        }
+        RegistrationOcl.requireRegistrableStatus(event);
     }
 
     private void validateAvailability(EventAvailabilityResponse availability) {
-        if (!isRegistrableStatus(availability.getStatus())) {
-            throw new BadRequestException("Only SCHEDULED or RESCHEDULED events can accept registrations");
-        }
-        if (Boolean.FALSE.equals(availability.getRegistrationOpen())) {
-            throw new BadRequestException("Registration is closed for this event");
-        }
-        if (availability.getAvailableSeats() == null || availability.getAvailableSeats() <= 0) {
-            throw new BadRequestException("No seats available for this event");
-        }
+        RegistrationOcl.requireAvailableSeats(availability);
     }
 
     private boolean isRegistrableStatus(String status) {

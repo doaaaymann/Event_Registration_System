@@ -2,7 +2,12 @@
 
 This document records the main business rules of the Event Registration System in an OCL-style form and shows where each rule is enforced in the code.
 
-The project does not run a separate OCL engine at runtime. Instead, the constraints are documented formally here and enforced directly inside the backend services. That keeps the rules visible for analysis and grading while still making them practical in implementation.
+The project does not use a separate OCL runtime engine. Instead, the constraints now appear in two places inside the codebase:
+
+- as formal OCL invariant strings in dedicated `ocl` classes
+- as executable validation logic used by the backend services
+
+That keeps the rules visible for analysis and grading while still making them practical in implementation.
 
 ## How To Read This File
 
@@ -10,6 +15,7 @@ Each rule includes:
 
 - a short explanation of the business meaning
 - an OCL-style constraint
+- the OCL class where the invariant is stored
 - the backend file where the rule is enforced
 
 The expressions are written in a readable, project-focused way so they stay close to the actual domain model.
@@ -26,6 +32,7 @@ inv PublicRegistrationParticipantOnly:
 
 Implemented in:
 
+- [AuthOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/ocl/AuthOcl.java:10)
 - [AuthService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/service/AuthService.java:54)
 
 The `register(...)` method rejects any public registration request whose role is not `PARTICIPANT`.
@@ -42,6 +49,7 @@ inv OnlyAdminCreatesManagedUsers:
 
 Implemented in:
 
+- [AuthOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/ocl/AuthOcl.java:13)
 - [AuthService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/service/AuthService.java:77)
 - [AuthService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/auth-service/src/main/java/com/event/authservice/service/AuthService.java:164)
 
@@ -59,6 +67,7 @@ inv EventMustHaveOrganizer:
 
 Implemented in:
 
+- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:13)
 - [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:304)
 
 The `normalizeOrganizerIds(...)` method removes invalid values and throws an error if no organizer remains.
@@ -75,6 +84,7 @@ inv EndAfterStart:
 
 Implemented in:
 
+- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:16)
 - [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:206)
 
 The `validateSchedule(...)` method checks this rule during creation, update, and rescheduling.
@@ -92,6 +102,7 @@ inv EventManagedByOwnerOrAdmin:
 
 Implemented in:
 
+- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:19)
 - [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:96)
 - [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:113)
 - [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:126)
@@ -112,6 +123,7 @@ inv CancelledEventNotEditable:
 
 Implemented in:
 
+- [EventOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/ocl/EventOcl.java:22)
 - [EventService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/event-service/src/main/java/com/event/eventservice/service/EventService.java:200)
 
 The `ensureNotCancelled(...)` method is used before update, reschedule, and organizer reassignment operations.
@@ -132,6 +144,7 @@ inv NoDuplicateActiveRegistration:
 
 Implemented in:
 
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:12)
 - [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:65)
 
 Before saving a new registration, the service checks whether a `REGISTERED` record already exists for the same participant and event.
@@ -149,6 +162,7 @@ inv RegistrationAllowedOnlyForOpenStates:
 
 Implemented in:
 
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:18)
 - [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:168)
 - [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:174)
 
@@ -166,6 +180,7 @@ inv OnlyParticipantCanRegister:
 
 Implemented in:
 
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:9)
 - [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:146)
 
 The service blocks registration attempts from non-participant accounts.
@@ -182,6 +197,7 @@ inv RegistrationOwnerOnly:
 
 Implemented in:
 
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:15)
 - [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:152)
 
 The `enforceOwnership(...)` method is used before reading or cancelling a registration.
@@ -200,6 +216,7 @@ inv ParticipantListVisibleToOrganizerOrAdmin:
 
 Implemented in:
 
+- [RegistrationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/ocl/RegistrationOcl.java:21)
 - [RegistrationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/registration-service/src/main/java/com/event/registrationservice/service/RegistrationService.java:158)
 
 The participant query flow uses `enforceParticipantTrackingAccess(...)` to guard access.
@@ -217,6 +234,7 @@ inv NotificationReadableByOwnerOrAdmin:
 
 Implemented in:
 
+- [NotificationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/ocl/NotificationOcl.java:9)
 - [NotificationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/service/NotificationService.java:127)
 
 This rule is applied both when listing notifications for a user and when marking a notification as read.
@@ -234,15 +252,16 @@ inv NotificationCreatePermission:
 
 Implemented in:
 
+- [NotificationOcl.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/ocl/NotificationOcl.java:12)
 - [NotificationService.java](/C:/Users/doaaa/Documents/GitHub/Event_Registration_System-/notification-service/src/main/java/com/event/notificationservice/service/NotificationService.java:117)
 
 The `enforceCreatePermission(...)` method prevents cross-user notification creation unless the caller is an admin.
 
 ## Summary
 
-The OCL work in this project exists in two complementary forms:
+The OCL work in this project now exists in two complementary forms:
 
-- formalized business constraints written here in OCL-style notation
-- actual enforcement in the backend service layer
+- formalized business constraints written here and stored inside dedicated `ocl` classes
+- actual enforcement in the backend service layer through executable validator methods
 
 That structure fits the project well. The rules stay readable for documentation and grading, while the application still enforces them directly in production code.
